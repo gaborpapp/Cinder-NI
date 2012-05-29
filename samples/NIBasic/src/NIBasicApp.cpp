@@ -24,6 +24,7 @@
 using namespace ci;
 using namespace ci::app;
 using namespace std;
+using namespace ciblock;
 
 class NIBasicApp : public AppBasic
 {
@@ -35,6 +36,8 @@ class NIBasicApp : public AppBasic
 		void draw();
 
 	private:
+		ni::OpenNI mNI;
+		gl::Texture mColorTexture, mDepthTexture;
 };
 
 void NIBasicApp::prepareSettings(Settings *settings)
@@ -44,15 +47,36 @@ void NIBasicApp::prepareSettings(Settings *settings)
 
 void NIBasicApp::setup()
 {
+	try
+	{
+		mNI = ni::OpenNI( ni::OpenNI::Device() );
+	}
+	catch ( ... )
+	{
+		console() << "Could not open Kinect" << endl;
+		quit();
+	}
+
+	mNI.start();
 }
 
 void NIBasicApp::update()
 {
+	if ( mNI.checkNewVideoFrame() )
+		mColorTexture = mNI.getVideoImage();
+	if ( mNI.checkNewDepthFrame() )
+		mDepthTexture = mNI.getDepthImage();
 }
 
 void NIBasicApp::draw()
 {
 	gl::clear( Color::black() );
+	gl::setMatricesWindow( getWindowWidth(), getWindowHeight() );
+
+	if ( mDepthTexture )
+		gl::draw( mDepthTexture );
+	if ( mColorTexture )
+		gl::draw( mColorTexture, Vec2i( 640, 0 ) );
 }
 
 CINDER_APP_BASIC( NIBasicApp, RendererGl( RendererGl::AA_NONE ) )
