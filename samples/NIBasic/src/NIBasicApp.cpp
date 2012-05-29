@@ -35,6 +35,8 @@ class NIBasicApp : public AppBasic
 		void update();
 		void draw();
 
+		void mouseUp( MouseEvent event );
+
 	private:
 		ni::OpenNI mNI;
 		gl::Texture mColorTexture, mDepthTexture;
@@ -77,6 +79,12 @@ void NIBasicApp::draw()
 		gl::draw( mDepthTexture );
 	if ( mColorTexture )
 		gl::draw( mColorTexture, Vec2i( 640, 0 ) );
+}
+
+void NIBasicApp::mouseUp( MouseEvent event )
+{
+    // toggle infrared video
+    mNI.setVideoInfrared( !mNI.isVideoInfrared() );
 }
 
 CINDER_APP_BASIC( NIBasicApp, RendererGl( RendererGl::AA_NONE ) )
