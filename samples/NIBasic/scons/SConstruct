@@ -1,0 +1,17 @@
+TARGET = 'NIBasicApp'
+SOURCES  = ['NIBasicApp.cpp']
+DEBUG = 1
+
+CINDERNIPATH = '../../../scons/'
+
+import sys
+sys.path.append(CINDERNIPATH)
+import CinderNI
+SOURCES += CinderNI.getSources(CINDERNIPATH)
+INCLUDES = CinderNI.getIncludes(CINDERNIPATH)
+LIBS = CinderNI.getLibs(CINDERNIPATH)
+LIBPATH = CinderNI.getLibPath(CINDERNIPATH)
+
+SConscript('../../../../../scons/SConscript',
+	exports = ['TARGET', 'SOURCES', 'DEBUG', 'INCLUDES', 'LIBS', 'LIBPATH'])
+
