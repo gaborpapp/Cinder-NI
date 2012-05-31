@@ -19,12 +19,12 @@
 #include "cinder/app/AppBasic.h"
 #include "cinder/gl/gl.h"
 
-#include "CinderNI.h"
+#include "CiNI.h"
 
 using namespace ci;
 using namespace ci::app;
 using namespace std;
-using namespace ciblock;
+using namespace mndl;
 
 class NIBasicApp : public AppBasic
 {
@@ -87,5 +87,5 @@ void NIBasicApp::mouseUp( MouseEvent event )
     mNI.setVideoInfrared( !mNI.isVideoInfrared() );
 }
 
-CINDER_APP_BASIC( NIBasicApp, RendererGl( RendererGl::AA_NONE ) )
+CINDER_APP_BASIC( NIBasicApp, RendererGl() )
 

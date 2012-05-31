@@ -52,9 +52,10 @@
 #include <XnHash.h>
 #include <XnLog.h>
 
-//#include "NIUserTracker.h"
+#include "CiNIBufferManager.h"
+#include "CiNIUserTracker.h"
 
-namespace ciblock { namespace ni {
+namespace mndl { namespace ni {
 
 inline bool checkRc( XnStatus rc, std::string what )
 {
@@ -122,79 +123,58 @@ class OpenNI
 		void			stopRecording();
 		bool			isRecording() const { return mObj->mRecording; }
 
-		//UserTracker		getUserTracker() { return mObj->mUserTracker; }
+		UserTracker		getUserTracker() { return mObj->mUserTracker; }
 
 	protected:
-		struct Obj {
-			Obj( int deviceIndex );
-			Obj( const ci::fs::path &recording );
-			~Obj();
+		class Obj : public BufferObj {
+			public:
+				Obj( int deviceIndex );
+				Obj( const ci::fs::path &recording );
+				~Obj();
 
-			void start();
+				void start();
 
-			template<typename T>
-			struct BufferManager {
-				BufferManager() {};
-				BufferManager( size_t allocationSize, Obj *openNIObj )
-					: mAllocationSize( allocationSize ), mOpenNIObj( openNIObj ), mActiveBuffer( 0 )
-				{}
-				~BufferManager();
+				BufferManager<uint8_t> mColorBuffers;
+				BufferManager<uint16_t> mDepthBuffers;
 
-				T*			getNewBuffer();
-				void		setActiveBuffer( T *buffer );
-				void		derefActiveBuffer();
-				T*			refActiveBuffer();
-				void		derefBuffer( T *buffer );
+				static void threadedFunc( struct OpenNI::Obj *arg );
 
-				Obj						*mOpenNIObj;
-				size_t					mAllocationSize;
-				// map from pointer to reference count
-				std::map<T*,size_t>		mBuffers;
-				T						*mActiveBuffer;
-			};
+				xn::Context mContext;
 
-			BufferManager<uint8_t> mColorBuffers;
-			BufferManager<uint16_t> mDepthBuffers;
+				xn::DepthGenerator mDepthGenerator;
+				xn::DepthMetaData mDepthMD;
+				int mDepthWidth;
+				int mDepthHeight;
+				int mDepthMaxDepth;
 
-			static void threadedFunc(struct OpenNI::Obj *arg);
+				xn::ImageGenerator mImageGenerator;
+				xn::ImageMetaData mImageMD;
+				int mImageWidth;
+				int mImageHeight;
 
-			xn::Context mContext;
+				xn::IRGenerator mIRGenerator;
+				xn::IRMetaData mIRMD;
+				int mIRWidth;
+				int mIRHeight;
 
-			xn::DepthGenerator mDepthGenerator;
-			xn::DepthMetaData mDepthMD;
-			int mDepthWidth;
-			int mDepthHeight;
-			int mDepthMaxDepth;
+				UserTracker mUserTracker;
 
-			xn::ImageGenerator mImageGenerator;
-			xn::ImageMetaData mImageMD;
-			int mImageWidth;
-			int mImageHeight;
+				xn::Recorder mRecorder;
+				bool mRecording;
 
-			xn::IRGenerator mIRGenerator;
-			xn::IRMetaData mIRMD;
-			int mIRWidth;
-			int mIRHeight;
+				void generateDepth();
+				void generateImage();
+				void generateIR();
 
-			//UserTracker mUserTracker;
+				std::shared_ptr<std::thread> mThread;
 
-			xn::Recorder mRecorder;
-			bool mRecording;
+				volatile bool mShouldDie;
+				volatile bool mNewDepthFrame, mNewVideoFrame;
+				volatile bool mVideoInfrared;
+				volatile bool mLastVideoFrameInfrared;
 
-			void generateDepth();
-			void generateImage();
-			void generateIR();
-
-			std::shared_ptr<std::thread> mThread;
-			std::recursive_mutex mMutex;
-
-			volatile bool mShouldDie;
-			volatile bool mNewDepthFrame, mNewVideoFrame;
-			volatile bool mVideoInfrared;
-			volatile bool mLastVideoFrameInfrared;
-
-			volatile bool mDepthAligned;
-			volatile bool mMirrored;
+				volatile bool mDepthAligned;
+				volatile bool mMirrored;
 		};
 
 		friend class ImageSourceOpenNIColor;
@@ -221,5 +201,5 @@ class OpenNI
 		class ExcFailedIRGeneratorInit : public Exc {};
 };
 
-} } // namespace ciblock::ni
+} } // namespace mndl::ni
 

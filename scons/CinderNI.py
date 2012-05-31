@@ -1,7 +1,7 @@
 import sys
 
 def getSources(relpath):
-	_SOURCES = ['CinderNI.cpp']
+	_SOURCES = ['CiNI.cpp', 'CiNIUserTracker.cpp']
 	return [relpath + '../src/' + s for s in _SOURCES]
 
 def getIncludes(relpath):

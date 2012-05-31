@@ -30,14 +30,14 @@
 
 #include "cinder/app/App.h"
 
-#include "CinderNI.h"
+#include "CiNI.h"
 
 using namespace xn;
 using namespace std;
 using namespace ci;
 using namespace ci::app;
 
-namespace ciblock { namespace ni {
+namespace mndl { namespace ni {
 
 class ImageSourceOpenNIColor : public ImageSource {
 	public:
@@ -129,23 +129,6 @@ class ImageSourceOpenNIDepth : public ImageSource {
 		uint16_t                    *mData;
 };
 
-// Used as the deleter for the shared_ptr returned by getImageData() and getDepthData()
-template<typename T>
-class OpenNIDataDeleter {
-	public:
-		OpenNIDataDeleter( OpenNI::Obj::BufferManager<T> *bufferMgr, shared_ptr<OpenNI::Obj> ownerObj )
-			: mBufferMgr( bufferMgr ), mOwnerObj( ownerObj )
-		{}
-
-		void operator()( T *data ) {
-			mBufferMgr->derefBuffer( data );
-		}
-
-		shared_ptr<OpenNI::Obj>	mOwnerObj; // to prevent deletion of our parent Obj
-		OpenNI::Obj::BufferManager<T> *mBufferMgr;
-};
-
-
 OpenNI::OpenNI( Device device )
 	: mObj( new Obj( device.mIndex ) )
 {
@@ -210,8 +193,7 @@ OpenNI::Obj::Obj( int deviceIndex )
 	mLastVideoFrameInfrared = mVideoInfrared;
 
 	// user tracker
-	// TODO
-	//mUserTracker = UserTracker(mContext);
+	mUserTracker = UserTracker(mContext);
 }
 
 OpenNI::Obj::Obj( const fs::path &recording )
@@ -294,8 +276,7 @@ OpenNI::Obj::Obj( const fs::path &recording )
 	}
 
 	// user tracker
-	// TODO
-	//mUserTracker = UserTracker( mContext );
+	mUserTracker = UserTracker( mContext );
 
 	mLastVideoFrameInfrared = mVideoInfrared;
 }
@@ -320,7 +301,7 @@ void OpenNI::Obj::start()
 	checkRc( rc, "Video.StartGenerating" );
 
 	// TODO
-	//mUserTracker.start();
+	mUserTracker.start();
 
 	mThread = shared_ptr< thread >( new thread( threadedFunc, this ) );
 }
@@ -413,68 +394,6 @@ void OpenNI::Obj::generateIR()
 	}
 }
 
-// Buffer management
-template<typename T>
-OpenNI::Obj::BufferManager<T>::~BufferManager()
-{
-	for( typename map<T*,size_t>::iterator bufIt = mBuffers.begin(); bufIt != mBuffers.end(); ++bufIt ) {
-		delete [] bufIt->first;
-	}
-}
-
-template<typename T>
-T* OpenNI::Obj::BufferManager<T>::getNewBuffer()
-{
-	lock_guard<recursive_mutex> lock( mOpenNIObj->mMutex );
-
-	typename map<T*,size_t>::iterator bufIt;
-	for( bufIt = mBuffers.begin(); bufIt != mBuffers.end(); ++bufIt ) {
-		if( bufIt->second == 0 ) // 0 means free buffer
-			break;
-	}
-	if( bufIt != mBuffers.end() ) {
-		bufIt->second = 1;
-		return bufIt->first;
-	}
-	else { // there were no available buffers - add a new one and return it
-		T *newBuffer = new T[mAllocationSize];
-		mBuffers[newBuffer] = 1;
-		return newBuffer;
-	}
-}
-
-template<typename T>
-void OpenNI::Obj::BufferManager<T>::setActiveBuffer( T *buffer )
-{
-	lock_guard<recursive_mutex> lock( mOpenNIObj->mMutex );
-	// assign new active buffer
-	mActiveBuffer = buffer;
-}
-
-template<typename T>
-T* OpenNI::Obj::BufferManager<T>::refActiveBuffer()
-{
-	lock_guard<recursive_mutex> lock( mOpenNIObj->mMutex );
-	mBuffers[mActiveBuffer]++;
-	return mActiveBuffer;
-}
-
-template<typename T>
-void OpenNI::Obj::BufferManager<T>::derefActiveBuffer()
-{
-	lock_guard<recursive_mutex> lock( mOpenNIObj->mMutex );
-	if( mActiveBuffer )	// decrement use count on current active buffer
-		mBuffers[mActiveBuffer]--;
-}
-
-template<typename T>
-void OpenNI::Obj::BufferManager<T>::derefBuffer( T *buffer )
-{
-	lock_guard<recursive_mutex> lock( mOpenNIObj->mMutex );
-	mBuffers[buffer]--;
-}
-
-
 bool OpenNI::checkNewDepthFrame()
 {
 	lock_guard<recursive_mutex> lock( mObj->mMutex );
@@ -515,14 +434,14 @@ std::shared_ptr<uint8_t> OpenNI::getVideoData()
 {
 	// register a reference to the active buffer
 	uint8_t *activeColor = mObj->mColorBuffers.refActiveBuffer();
-	return shared_ptr<uint8_t>( activeColor, OpenNIDataDeleter<uint8_t>( &mObj->mColorBuffers, mObj ) );
+	return shared_ptr<uint8_t>( activeColor, DataDeleter<uint8_t>( &mObj->mColorBuffers, mObj ) );
 }
 
 std::shared_ptr<uint16_t> OpenNI::getDepthData()
 {
 	// register a reference to the active buffer
 	uint16_t *activeDepth = mObj->mDepthBuffers.refActiveBuffer();
-	return shared_ptr<uint16_t>( activeDepth, OpenNIDataDeleter<uint16_t>( &mObj->mDepthBuffers, mObj ) );
+	return shared_ptr<uint16_t>( activeDepth, DataDeleter<uint16_t>( &mObj->mDepthBuffers, mObj ) );
 }
 
 void OpenNI::setVideoInfrared( bool infrared )
@@ -633,5 +552,5 @@ void OpenNI::stopRecording()
 	}
 }
 
-} } // namespace ciblock::ni
+} } // namespace mndl::ni
 
