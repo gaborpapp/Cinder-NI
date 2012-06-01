@@ -112,6 +112,12 @@ UserTracker::Obj::Obj( xn::Context context )
 	rc = mContext.FindExistingNode(XN_NODE_TYPE_DEPTH, mDepthGenerator);
 	checkRc( rc, "Retrieving depth generator" );
 
+	xn::DepthMetaData depthMD;
+	mDepthGenerator.GetMetaData( depthMD );
+	mDepthWidth = depthMD.FullXRes();
+	mDepthHeight = depthMD.FullYRes();
+	mUserBuffers = BufferManager<uint8_t>( mDepthWidth * mDepthHeight, this );
+
 	rc = mContext.FindExistingNode(XN_NODE_TYPE_USER, mUserGenerator);
 	if (rc != XN_STATUS_OK)
 	{
@@ -242,6 +248,79 @@ Vec3f UserTracker::getUserCenter( XnUserID userId )
 	XnPoint3D center;
 	mObj->mUserGenerator.GetCoM( userId, center );
 	return Vec3f( center.X, center.Y, center.Z );
+}
+
+class ImageSourceOpenNIUserMask : public ImageSource {
+	public:
+		ImageSourceOpenNIUserMask( uint8_t *buffer, int w, int h, shared_ptr<UserTracker::Obj> ownerObj )
+			: ImageSource(), mData( buffer ), mOwnerObj( ownerObj )
+		{
+			setSize( w, h );
+			setColorModel( ImageIo::CM_GRAY );
+			setChannelOrder( ImageIo::Y );
+			setDataType( ImageIo::UINT8 );
+		}
+
+		~ImageSourceOpenNIUserMask()
+		{
+			// let the owner know we are done with the buffer
+			mOwnerObj->mUserBuffers.derefBuffer( mData );
+		}
+
+		virtual void load( ImageTargetRef target )
+		{
+			ImageSource::RowFunc func = setupRowFunc( target );
+
+			for( int32_t row = 0; row < mHeight; ++row )
+				((*this).*func)( target, row, mData + row * mWidth );
+		}
+
+	protected:
+		shared_ptr<UserTracker::Obj>	mOwnerObj;
+		uint8_t							*mData;
+};
+
+ImageSourceRef UserTracker::getUserMask( XnUserID userId )
+{
+	mObj->mUserBuffers.derefActiveBuffer(); // finished with current active buffer
+	uint8_t *destPixels = mObj->mUserBuffers.getNewBuffer();  // request a new buffer
+
+	xn::SceneMetaData sceneMD;
+    XnStatus rc = mObj->mUserGenerator.GetUserPixels( userId, sceneMD);
+	checkRc( rc, "UserGenerator GetUserPixels" );
+	if ( rc == XN_STATUS_OK )
+	{
+		const uint16_t *userPixels = reinterpret_cast< const uint16_t * >( sceneMD.Data() );
+
+		if ( userId == 0 )
+		{
+			// mask for all users
+			for ( size_t i = 0 ; i < mObj->mDepthWidth * mObj->mDepthHeight; i++ )
+			{
+				if ( userPixels[i] != 0 )
+					destPixels[i] = 255;
+				else
+					destPixels[i] = 0;
+			}
+		}
+		else
+		{
+			// mask for specified user id
+			for ( size_t i = 0 ; i < mObj->mDepthWidth * mObj->mDepthHeight; i++ )
+			{
+				if ( userPixels[i] == userId )
+					destPixels[i] = 255;
+				else
+					destPixels[i] = 0;
+			}
+		}
+	}
+
+	// set this new buffer to be the current active buffer
+	mObj->mUserBuffers.setActiveBuffer( destPixels );
+
+	uint8_t *activeMask = mObj->mUserBuffers.refActiveBuffer();
+	return ImageSourceRef( new ImageSourceOpenNIUserMask( activeMask, mObj->mDepthWidth, mObj->mDepthHeight, mObj ) );
 }
 
 } } // namespace mndl::ni

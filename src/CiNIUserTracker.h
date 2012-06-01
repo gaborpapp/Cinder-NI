@@ -6,11 +6,14 @@
 #include "cinder/Cinder.h"
 #include "cinder/Vector.h"
 #include "cinder/Exception.h"
+#include "cinder/Surface.h"
 
 #include <XnOpenNI.h>
 #include <XnCppWrapper.h>
 #include <XnHash.h>
 #include <XnLog.h>
+
+#include "CiNIBufferManager.h"
 
 namespace mndl { namespace ni {
 
@@ -50,8 +53,11 @@ class UserTracker
 
 		void addListener( Listener *listener );
 
+		//! Returns mask for the given \a userId. Or a mask for all users if \a userId is 0 (the default).
+		ci::ImageSourceRef getUserMask( XnUserID userId = 0 );
+
 	protected:
-		struct Obj {
+		struct Obj : BufferObj {
 			Obj( xn::Context context );
 			//~Obj();
 
@@ -59,12 +65,18 @@ class UserTracker
 
 			xn::UserGenerator mUserGenerator;
 			xn::DepthGenerator mDepthGenerator;
+			int mDepthWidth;
+			int mDepthHeight;
 			std::list< Listener * > mListeners;
 
 			static bool sNeedPose;
 			static XnChar sCalibrationPose[20];
+
+			BufferManager<uint8_t> mUserBuffers;
 		};
 		std::shared_ptr<Obj> mObj;
+
+		friend class ImageSourceOpenNIUserMask;
 
 		static void XN_CALLBACK_TYPE newUserCB( xn::UserGenerator &generator, XnUserID nId, void *pCookie );
 		static void XN_CALLBACK_TYPE lostUserCB( xn::UserGenerator &generator, XnUserID nId, void *pCookie );
