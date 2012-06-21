@@ -1,26 +1,12 @@
-TARGET = 'NIUserContourApp'
-SOURCES  = ['NIUserContourApp.cpp']
-DEBUG = 1
+env = Environment()
 
-CINDERNIPATH = '../../../scons/'
+env['APP_TARGET'] = 'NIUserContourApp'
+env['APP_SOURCES'] = ['NIUserContourApp.cpp']
 
-import sys
-sys.path.append(CINDERNIPATH)
-import CinderNI
-SOURCES += CinderNI.getSources(CINDERNIPATH)
-INCLUDES = CinderNI.getIncludes(CINDERNIPATH)
-LIBS = CinderNI.getLibs(CINDERNIPATH)
-LIBPATH = CinderNI.getLibPath(CINDERNIPATH)
+# Cinder-NI
+env = SConscript('../../../scons/SConscript', exports = 'env')
 
-CINDER_OPENCV_PATH = '../../../../Cinder-OpenCV/scons/'
+# Cinder-OpenCV
+env = SConscript('../../../../Cinder-OpenCV/scons/SConscript', exports = 'env')
 
-sys.path.append(CINDER_OPENCV_PATH)
-import CinderOpenCV
-SOURCES += CinderOpenCV.getSources(CINDER_OPENCV_PATH)
-INCLUDES += CinderOpenCV.getIncludes(CINDER_OPENCV_PATH)
-CVLIBS = CinderOpenCV.getLibs(CINDER_OPENCV_PATH)
-LIBS += [File(s) for s in CVLIBS]
-
-SConscript('../../../../../scons/SConscript',
-	exports = ['TARGET', 'SOURCES', 'DEBUG', 'INCLUDES', 'LIBS', 'LIBPATH'])
-
+SConscript('../../../../../scons/SConscript', exports = 'env')

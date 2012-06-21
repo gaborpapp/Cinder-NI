@@ -1,3 +1,6 @@
-.sconsign.dblite
-*.pyc
-
+# scons
+*/*/scons/*
+!scons/SConscript
+!scons/SConstruct
+!.gitignore
+*.o

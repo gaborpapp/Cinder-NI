@@ -1,0 +1,21 @@
+Import('env')
+
+_INCLUDES = [Dir('../src').abspath, '/usr/include/ni',
+		'/usr/include/nite']
+
+_SOURCES = ['CiNI.cpp', 'CiNIUserTracker.cpp']
+_SOURCES = [File('../src/' + s).abspath for s in _SOURCES]
+
+_LIBS = ['OpenNI', 'usb-1.0']
+
+if env['PLATFORM'] == 'darwin':
+	_LIBPATH = ['/usr/lib/', '/opt/local/lib/']
+else:
+	_LIBPATH = [] # TODO
+
+env.Append(APP_SOURCES = _SOURCES)
+env.Append(CPPPATH = _INCLUDES)
+env.Append(LIBS = _LIBS)
+env.Append(LIBPATH = _LIBPATH)
+
+Return('env')

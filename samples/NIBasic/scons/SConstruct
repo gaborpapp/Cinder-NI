@@ -1,17 +1,9 @@
-TARGET = 'NIBasicApp'
-SOURCES  = ['NIBasicApp.cpp']
-DEBUG = 1
+env = Environment()
 
-CINDERNIPATH = '../../../scons/'
+env['APP_TARGET'] = 'NIBasicApp'
+env['APP_SOURCES'] = ['NIBasicApp.cpp']
 
-import sys
-sys.path.append(CINDERNIPATH)
-import CinderNI
-SOURCES += CinderNI.getSources(CINDERNIPATH)
-INCLUDES = CinderNI.getIncludes(CINDERNIPATH)
-LIBS = CinderNI.getLibs(CINDERNIPATH)
-LIBPATH = CinderNI.getLibPath(CINDERNIPATH)
+# Cinder-NI
+env = SConscript('../../../scons/SConscript', exports = 'env')
 
-SConscript('../../../../../scons/SConscript',
-	exports = ['TARGET', 'SOURCES', 'DEBUG', 'INCLUDES', 'LIBS', 'LIBPATH'])
-
+SConscript('../../../../../scons/SConscript', exports = 'env')
