@@ -182,15 +182,15 @@ vector< unsigned > UserTracker::getUsers()
 	return users;
 }
 
-Vec2f UserTracker::getJoint2d( XnUserID userId, XnSkeletonJoint jointId )
+Vec2f UserTracker::getJoint2d( XnUserID userId, XnSkeletonJoint jointId, float *conf /* = NULL */ )
 {
 	if (mObj->mUserGenerator.GetSkeletonCap().IsTracking( userId ))
 	{
 		XnSkeletonJointPosition joint;
 		mObj->mUserGenerator.GetSkeletonCap().GetSkeletonJointPosition( userId, jointId, joint );
 
-	   if (joint.fConfidence <= 0.)
-		   return Vec2f();
+		if ( conf != NULL )
+			*conf = joint.fConfidence;
 
 		XnPoint3D pt[1];
 		pt[0] = joint.position;
@@ -201,40 +201,56 @@ Vec2f UserTracker::getJoint2d( XnUserID userId, XnSkeletonJoint jointId )
 	}
 	else
 	{
+		if ( conf != NULL )
+			*conf = 0;
+
 		return Vec2f();
 	}
 }
 
-Vec3f UserTracker::getJoint3d( XnUserID userId, XnSkeletonJoint jointId )
+Vec3f UserTracker::getJoint3d( XnUserID userId, XnSkeletonJoint jointId, float *conf /* = NULL */ )
 {
 	if (mObj->mUserGenerator.GetSkeletonCap().IsTracking( userId ))
 	{
 		XnSkeletonJointPosition joint;
 		mObj->mUserGenerator.GetSkeletonCap().GetSkeletonJointPosition( userId, jointId, joint );
 
-		if (joint.fConfidence <= 0.)
-			return Vec3f();
+		if ( conf != NULL )
+			*conf = joint.fConfidence;
 
 		return Vec3f( joint.position.X, joint.position.Y, joint.position.Z );
 	}
 	else
 	{
+		if ( conf != NULL )
+			*conf = 0;
+
 		return Vec3f();
 	}
 }
 
-float UserTracker::getJointConfidance( XnUserID userId, XnSkeletonJoint jointId )
+Matrix44f UserTracker::getJointOrientation( XnUserID userId, XnSkeletonJoint jointId, float *conf /* = NULL */ )
 {
 	if (mObj->mUserGenerator.GetSkeletonCap().IsTracking( userId ))
 	{
-		XnSkeletonJointPosition joint;
-		mObj->mUserGenerator.GetSkeletonCap().GetSkeletonJointPosition( userId, jointId, joint );
+		XnSkeletonJointOrientation jointOri;
+		mObj->mUserGenerator.GetSkeletonCap().GetSkeletonJointOrientation( userId, jointId, jointOri );
 
-		return joint.fConfidence;
+		if ( conf != NULL )
+			*conf = jointOri.fConfidence;
+
+		float *oriM = jointOri.orientation.elements;
+		return Matrix44f( oriM[ 0 ], oriM[ 3 ], oriM[ 6 ], 0.0f,
+						  oriM[ 1 ], oriM[ 4 ], oriM[ 7 ], 0.0f,
+						  oriM[ 2 ], oriM[ 5 ], oriM[ 8 ], 0.0f,
+						  0.0f, 0.0f, 0.0f, 1.0f );
 	}
 	else
 	{
-		return 0;
+		if ( conf != NULL )
+			*conf = 0;
+
+		return Matrix44f();
 	}
 }
 
