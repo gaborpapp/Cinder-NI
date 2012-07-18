@@ -99,8 +99,8 @@ void NIUserTrackerApp::draw()
 		for ( int i = 0; i < sizeof( jointIds ) / sizeof( jointIds[0] );
 				++i )
 		{
-			Vec2f joint = mNIUserTracker.getJoint2d( userId, jointIds[i] );
-			float conf = mNIUserTracker.getJointConfidance( userId, jointIds[i] );
+			float conf;
+			Vec2f joint = mNIUserTracker.getJoint2d( userId, jointIds[i], &conf );
 
 			if ( conf > .9 )
 			{
