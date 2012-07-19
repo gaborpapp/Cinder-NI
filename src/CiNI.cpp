@@ -206,7 +206,7 @@ OpenNI::Obj::Obj( const fs::path &recording )
 	XnStatus rc = mContext.Init();
 	checkRc( rc, "context" );
 
-	rc = mContext.OpenFileRecording( recording.c_str() );
+	rc = mContext.OpenFileRecording( (const XnChar *)( recording.c_str()));
 	if ( !checkRc( rc, "OpenFileRecording" ) )
 	{
 		throw ExcFailedOpenFileRecording();
@@ -519,7 +519,7 @@ void OpenNI::startRecording( const fs::path &filename )
 			if ( !checkRc( rc, "Recorder.Create" ) )
 				return;
 		}
-		rc = mObj->mRecorder.SetDestination( XN_RECORD_MEDIUM_FILE, filename.c_str() );
+		rc = mObj->mRecorder.SetDestination( XN_RECORD_MEDIUM_FILE, (const XnChar *)( filename.c_str()));
 		checkRc( rc, "Recorder.SetDestination" );
 
 		if ( mObj->mDepthGenerator.IsValid() )
