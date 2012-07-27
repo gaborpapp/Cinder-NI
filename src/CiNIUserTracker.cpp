@@ -229,7 +229,7 @@ Vec3f UserTracker::getJoint3d( XnUserID userId, XnSkeletonJoint jointId, float *
 	}
 }
 
-Matrix44f UserTracker::getJointOrientation( XnUserID userId, XnSkeletonJoint jointId, float *conf /* = NULL */ )
+Matrix33f UserTracker::getJointOrientation( XnUserID userId, XnSkeletonJoint jointId, float *conf /* = NULL */ )
 {
 	if (mObj->mUserGenerator.GetSkeletonCap().IsTracking( userId ))
 	{
@@ -240,17 +240,16 @@ Matrix44f UserTracker::getJointOrientation( XnUserID userId, XnSkeletonJoint joi
 			*conf = jointOri.fConfidence;
 
 		float *oriM = jointOri.orientation.elements;
-		return Matrix44f( oriM[ 0 ], oriM[ 3 ], oriM[ 6 ], 0.0f,
-						  oriM[ 1 ], oriM[ 4 ], oriM[ 7 ], 0.0f,
-						  oriM[ 2 ], oriM[ 5 ], oriM[ 8 ], 0.0f,
-						  0.0f, 0.0f, 0.0f, 1.0f );
+		return Matrix33f( oriM[ 0 ], oriM[ 3 ], oriM[ 6 ],
+						  oriM[ 1 ], oriM[ 4 ], oriM[ 7 ],
+						  oriM[ 2 ], oriM[ 5 ], oriM[ 8 ] );
 	}
 	else
 	{
 		if ( conf != NULL )
 			*conf = 0;
 
-		return Matrix44f();
+		return Matrix33f();
 	}
 }
 

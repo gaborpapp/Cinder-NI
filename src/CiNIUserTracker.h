@@ -46,7 +46,7 @@ class UserTracker
 		ci::Vec2f getJoint2d( XnUserID userId, XnSkeletonJoint jointId, float *conf = NULL );
 		ci::Vec3f getJoint3d( XnUserID userId, XnSkeletonJoint jointId, float *conf = NULL );
 
-		ci::Matrix44f getJointOrientation( XnUserID userId, XnSkeletonJoint jointId, float *conf = NULL );
+		ci::Matrix33f getJointOrientation( XnUserID userId, XnSkeletonJoint jointId, float *conf = NULL );
 
 		void setSmoothing( float s );
 
