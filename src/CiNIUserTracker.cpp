@@ -182,6 +182,26 @@ vector< unsigned > UserTracker::getUsers()
 	return users;
 }
 
+int UserTracker::getClosestUserId()
+{
+	XnUserID aUsers[20];
+	XnUInt16 nUsers = 20;
+	mObj->mUserGenerator.GetUsers( aUsers, nUsers );
+	float minZ = 99999;
+	int closestId = -1;
+	for ( unsigned i = 0; i < nUsers; i++)
+	{
+		XnPoint3D center;
+		mObj->mUserGenerator.GetCoM( aUsers[i], center );
+		if (center.Z < minZ)
+		{
+			closestId = aUsers[i];
+			minZ = center.Z;
+		}
+	}
+	return closestId;
+}
+
 Vec2f UserTracker::getJoint2d( XnUserID userId, XnSkeletonJoint jointId, float *conf /* = NULL */ )
 {
 	if (mObj->mUserGenerator.GetSkeletonCap().IsTracking( userId ))
