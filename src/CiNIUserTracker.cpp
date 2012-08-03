@@ -170,6 +170,15 @@ void UserTracker::addListener( Listener *listener )
 	mObj->mListeners.push_back( listener );
 }
 
+size_t UserTracker::getNumUsers()
+{
+	XnUserID aUsers[20];
+	XnUInt16 nUsers = 20;
+	mObj->mUserGenerator.GetUsers( aUsers, nUsers );
+
+	return nUsers;
+}
+
 vector< unsigned > UserTracker::getUsers()
 {
 	XnUserID aUsers[20];
@@ -182,13 +191,13 @@ vector< unsigned > UserTracker::getUsers()
 	return users;
 }
 
-int UserTracker::getClosestUserId()
+unsigned UserTracker::getClosestUserId()
 {
 	XnUserID aUsers[20];
 	XnUInt16 nUsers = 20;
 	mObj->mUserGenerator.GetUsers( aUsers, nUsers );
 	float minZ = 99999;
-	int closestId = -1;
+	unsigned closestId = 0;
 	for ( unsigned i = 0; i < nUsers; i++)
 	{
 		XnPoint3D center;

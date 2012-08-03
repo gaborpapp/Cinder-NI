@@ -41,8 +41,9 @@ class UserTracker
 
 		void start();
 
+		size_t getNumUsers();
 		std::vector< unsigned > getUsers();
-		int getClosestUserId();
+		unsigned getClosestUserId();
 
 		ci::Vec2f getJoint2d( XnUserID userId, XnSkeletonJoint jointId, float *conf = NULL );
 		ci::Vec3f getJoint3d( XnUserID userId, XnSkeletonJoint jointId, float *conf = NULL );
