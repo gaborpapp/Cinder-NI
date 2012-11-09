@@ -199,6 +199,14 @@ class OpenNI
 
 		//! Exception thrown from a failure to create an IR generator
 		class ExcFailedIRGeneratorInit : public Exc {};
+
+	public:
+		//@{
+		//! Emulates shared_ptr-like behavior
+		typedef std::shared_ptr<Obj> OpenNI::*unspecified_bool_type;
+		operator unspecified_bool_type() const { return ( mObj.get() == 0 ) ? 0 : &OpenNI::mObj; }
+		void reset() { mObj.reset(); }
+		//@}
 };
 
 } } // namespace mndl::ni
