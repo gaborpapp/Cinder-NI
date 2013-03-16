@@ -40,6 +40,7 @@ class UserTracker
 		};
 
 		void start();
+		void stop();
 
 		size_t getNumUsers();
 		std::vector< unsigned > getUsers();

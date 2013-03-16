@@ -123,7 +123,8 @@ class OpenNI
 		//! Creates a new OpenNI based on the OpenNI recording from the file path \a path.
 		OpenNI( const ci::fs::path &recording, const Options &options = Options() );
 
-		void			start();
+		void start();
+		void stop();
 
 		//! Returns whether there is a new depth frame available since the last call to checkNewDepthFrame(). Call getDepthImage() to retrieve it.
 		bool			checkNewDepthFrame();
@@ -167,6 +168,7 @@ class OpenNI
 				~Obj();
 
 				void start();
+				void stop();
 
 				BufferManager<uint8_t> mColorBuffers;
 				BufferManager<uint16_t> mDepthBuffers;

@@ -165,6 +165,13 @@ void UserTracker::start()
 	checkRc( rc, "UserGenerator.StartGenerating" );
 }
 
+void UserTracker::stop()
+{
+	XnStatus rc;
+	rc = mObj->mUserGenerator.StopGenerating();
+	checkRc( rc, "UserGenerator.StopGenerating" );
+}
+
 void UserTracker::addListener( Listener *listener )
 {
 	mObj->mListeners.push_back( listener );

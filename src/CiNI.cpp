@@ -144,6 +144,11 @@ void OpenNI::start()
 	mObj->start();
 }
 
+void OpenNI::stop()
+{
+	mObj->stop();
+}
+
 OpenNI::Obj::Obj( int deviceIndex, const Options &options )
 	: mShouldDie( false ),
 	  mNewDepthFrame( false ),
@@ -307,9 +312,7 @@ OpenNI::Obj::Obj( const fs::path &recording, const Options &options )
 
 OpenNI::Obj::~Obj()
 {
-	mShouldDie = true;
-	if ( mThread )
-		mThread->join();
+	stop();
 	mContext.Shutdown();
 }
 
@@ -332,7 +335,42 @@ void OpenNI::Obj::start()
 	if ( mOptions.getUserTrackerEnabled() )
 		mUserTracker.start();
 
+	if ( mThread )
+	{
+		mShouldDie = true;
+		mThread->join();
+	}
+	mShouldDie = false;
 	mThread = shared_ptr< thread >( new thread( threadedFunc, this ) );
+}
+
+void OpenNI::Obj::stop()
+{
+	mShouldDie = true;
+	if ( mThread )
+	{
+		mThread->join();
+		mThread.reset();
+	}
+
+	XnStatus rc;
+	if ( mOptions.getDepthEnabled() )
+	{
+		rc = mDepthGenerator.StopGenerating();
+		checkRc( rc, "DepthGenerator.StopGenerating" );
+	}
+	if ( mOptions.getImageEnabled() )
+	{
+		rc = mImageGenerator.StopGenerating();
+		checkRc( rc, "ImageGenerater.StopGenerating" );
+	}
+	if ( mOptions.getIREnabled() )
+	{
+		rc = mIRGenerator.StopGenerating();
+		checkRc( rc, "IRGenerater.StopGenerating" );
+	}
+	if ( mOptions.getUserTrackerEnabled() )
+		mUserTracker.stop();
 }
 
 void OpenNI::Obj::threadedFunc( OpenNI::Obj *obj )
