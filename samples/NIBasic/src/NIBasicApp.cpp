@@ -49,11 +49,14 @@ void NIBasicApp::prepareSettings(Settings *settings)
 
 void NIBasicApp::setup()
 {
+	ni::OpenNI::Options options;
+	options.enableUserTracker( false );
+
 	try
 	{
-		mNI = ni::OpenNI( ni::OpenNI::Device() );
+		mNI = ni::OpenNI( ni::OpenNI::Device(), options );
 	}
-	catch ( ... )
+	catch ( ni::OpenNIExc &exc )
 	{
 		console() << "Could not open Kinect" << endl;
 		quit();

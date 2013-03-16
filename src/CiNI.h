@@ -30,9 +30,10 @@
 
 #pragma once
 
+#include <exception>
 #include <iostream>
-#include <string>
 #include <map>
+#include <string>
 
 #include "cinder/Cinder.h"
 #include "cinder/Thread.h"
@@ -71,7 +72,40 @@ inline bool checkRc( XnStatus rc, std::string what )
 class OpenNI
 {
 	public:
-		//! Represents the identifier for a particular Kinect
+		//! Options for specifying OpenNI generators
+		class Options
+		{
+			public:
+				Options( bool enableDepth = true, bool enableImage = true,
+						 bool enableIR = true, bool enableUserTracker = true )
+					: mDepthEnabled( enableDepth ), mImageEnabled( enableImage ),
+					  mIREnabled( enableIR ), mUserTrackerEnabled( enableUserTracker )
+				{}
+
+				Options &enableDepth( bool enable = true ) { mDepthEnabled = enable; return *this; }
+				bool getDepthEnabled() const { return mDepthEnabled; }
+				void setDepthEnabled( bool enable = true ) { mDepthEnabled = enable; }
+
+				Options &enableImage( bool enable = true ) { mImageEnabled = enable; return *this; }
+				bool getImageEnabled() const { return mImageEnabled; }
+				void setImageEnabled( bool enable = true ) { mImageEnabled = enable; }
+
+				Options &enableIR( bool enable = true ) { mIREnabled = enable; return *this; }
+				bool getIREnabled() const { return mIREnabled; }
+				void setIREnabled( bool enable = true ) { mIREnabled = enable; }
+
+				Options &enableUserTracker( bool enable = true ) { mUserTrackerEnabled = enable; return *this; }
+				bool getUserTrackerEnabled() const { return mUserTrackerEnabled; }
+				void setUserTrackerEnabled( bool enable = true ) { mUserTrackerEnabled = enable; }
+
+			private:
+				bool mDepthEnabled;
+				bool mImageEnabled;
+				bool mIREnabled;
+				bool mUserTrackerEnabled;
+		};
+
+		//! Represents the identifier for a particular OpenNI device
 		struct Device {
 			Device( int index = 0 )
 				: mIndex( index )
@@ -84,10 +118,10 @@ class OpenNI
 		OpenNI() {}
 
 		//! Creates a new OpenNI based on Device # \a device. 0 is the typical value for \a deviceIndex.
-		OpenNI( Device device );
+		OpenNI( Device device, const Options &options = Options() );
 
 		//! Creates a new OpenNI based on the OpenNI recording from the file path \a path.
-		OpenNI( const ci::fs::path &recording );
+		OpenNI( const ci::fs::path &recording, const Options &options = Options() );
 
 		void			start();
 
@@ -128,8 +162,8 @@ class OpenNI
 	protected:
 		class Obj : public BufferObj {
 			public:
-				Obj( int deviceIndex );
-				Obj( const ci::fs::path &recording );
+				Obj( int deviceIndex, const Options &options );
+				Obj( const ci::fs::path &recording, const Options &options );
 				~Obj();
 
 				void start();
@@ -162,6 +196,8 @@ class OpenNI
 				xn::Recorder mRecorder;
 				bool mRecording;
 
+				Options mOptions;
+
 				void generateDepth();
 				void generateImage();
 				void generateIR();
@@ -185,21 +221,6 @@ class OpenNI
 
 		std::shared_ptr<Obj> mObj;
 
-		//! Parent class for all OpenNI exceptions
-		class Exc : cinder::Exception {};
-
-		//! Exception thrown from a failure to open a file recording
-		class ExcFailedOpenFileRecording : public Exc {};
-
-		//! Exception thrown from a failure to create a depth generator
-		class ExcFailedDepthGeneratorInit : public Exc {};
-
-		//! Exception thrown from a failure to create an image generator
-		class ExcFailedImageGeneratorInit : public Exc {};
-
-		//! Exception thrown from a failure to create an IR generator
-		class ExcFailedIRGeneratorInit : public Exc {};
-
 	public:
 		//@{
 		//! Emulates shared_ptr-like behavior
@@ -208,6 +229,21 @@ class OpenNI
 		void reset() { mObj.reset(); }
 		//@}
 };
+
+//! Parent class for all OpenNI exceptions
+class OpenNIExc : std::exception {};
+
+//! Exception thrown from a failure to open a file recording
+class ExcFailedOpenFileRecording : public OpenNIExc {};
+
+//! Exception thrown from a failure to create a depth generator
+class ExcFailedDepthGeneratorInit : public OpenNIExc {};
+
+//! Exception thrown from a failure to create an image generator
+class ExcFailedImageGeneratorInit : public OpenNIExc {};
+
+//! Exception thrown from a failure to create an IR generator
+class ExcFailedIRGeneratorInit : public OpenNIExc {};
 
 } } // namespace mndl::ni
 

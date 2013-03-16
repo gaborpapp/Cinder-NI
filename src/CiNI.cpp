@@ -129,13 +129,13 @@ class ImageSourceOpenNIDepth : public ImageSource {
 		uint16_t                    *mData;
 };
 
-OpenNI::OpenNI( Device device )
-	: mObj( new Obj( device.mIndex ) )
+OpenNI::OpenNI( Device device, const Options &options )
+	: mObj( new Obj( device.mIndex, options ) )
 {
 }
 
-OpenNI::OpenNI( const fs::path &recording )
-	: mObj( new Obj( recording ) )
+OpenNI::OpenNI( const fs::path &recording, const Options &options )
+	: mObj( new Obj( recording, options ) )
 {
 }
 
@@ -144,64 +144,84 @@ void OpenNI::start()
 	mObj->start();
 }
 
-OpenNI::Obj::Obj( int deviceIndex )
+OpenNI::Obj::Obj( int deviceIndex, const Options &options )
 	: mShouldDie( false ),
 	  mNewDepthFrame( false ),
 	  mNewVideoFrame( false ),
-	  mVideoInfrared( false ),
-	  mRecording( false )
+	  mRecording( false ),
+	  mOptions( options )
 {
 	XnStatus rc = mContext.Init();
 	checkRc( rc, "context" );
 
 	// depth
-	rc = mDepthGenerator.Create(mContext);
-	if ( rc != XN_STATUS_OK )
-		throw ExcFailedDepthGeneratorInit();
-	mDepthGenerator.GetMetaData( mDepthMD );
-	mDepthWidth = mDepthMD.FullXRes();
-	mDepthHeight = mDepthMD.FullYRes();
-	mDepthMaxDepth = mDepthGenerator.GetDeviceMaxDepth();
+	if ( options.getDepthEnabled() )
+	{
+		rc = mDepthGenerator.Create(mContext);
+		if ( rc != XN_STATUS_OK )
+			throw ExcFailedDepthGeneratorInit();
+		// make new map mode -> default to 640 x 480 @ 30fps
+		// asus xtion default is 320x240 @ 60fps
+		XnMapOutputMode mapMode;
+		mapMode.nXRes = 640;
+		mapMode.nYRes = 480;
+		mapMode.nFPS  = 30;
+		mDepthGenerator.SetMapOutputMode( mapMode );
 
-	mDepthBuffers = BufferManager<uint16_t>( mDepthWidth * mDepthHeight, this );
+		mDepthGenerator.GetMetaData( mDepthMD );
+		mDepthWidth = mDepthMD.FullXRes();
+		mDepthHeight = mDepthMD.FullYRes();
+		mDepthMaxDepth = mDepthGenerator.GetDeviceMaxDepth();
+
+		mDepthBuffers = BufferManager<uint16_t>( mDepthWidth * mDepthHeight, this );
+	}
 
 	// image
-	rc = mImageGenerator.Create(mContext);
-	if ( rc != XN_STATUS_OK )
-		throw ExcFailedImageGeneratorInit();
-	mImageGenerator.GetMetaData( mImageMD );
-	mImageWidth = mImageMD.FullXRes();
-	mImageHeight = mImageMD.FullYRes();
-
-	mColorBuffers = BufferManager<uint8_t>( mImageWidth * mImageHeight * 3, this );
+	if ( options.getImageEnabled() )
+	{
+		rc = mImageGenerator.Create(mContext);
+		if ( rc != XN_STATUS_OK )
+			throw ExcFailedImageGeneratorInit();
+		mImageGenerator.GetMetaData( mImageMD );
+		mImageWidth = mImageMD.FullXRes();
+		mImageHeight = mImageMD.FullYRes();
+	}
 
 	// IR
-	rc = mIRGenerator.Create(mContext);
-	if ( rc != XN_STATUS_OK )
-		throw ExcFailedIRGeneratorInit();
-	// make new map mode -> default to 640 x 480 @ 30fps
-	XnMapOutputMode mapMode;
-	mapMode.nXRes = mDepthWidth;
-	mapMode.nYRes = mDepthHeight;
-	mapMode.nFPS  = 30;
-	mIRGenerator.SetMapOutputMode( mapMode );
+	if ( options.getIREnabled() )
+	{
+		rc = mIRGenerator.Create(mContext);
+		if ( rc != XN_STATUS_OK )
+			throw ExcFailedIRGeneratorInit();
+		// make new map mode -> default to 640 x 480 @ 30fps
+		XnMapOutputMode mapMode;
+		mapMode.nXRes = 640;
+		mapMode.nYRes = 480;
+		mapMode.nFPS  = 30;
+		mIRGenerator.SetMapOutputMode( mapMode );
 
-	mIRGenerator.GetMetaData( mIRMD );
-	mIRWidth = mIRMD.FullXRes();
-	mIRHeight = mIRMD.FullYRes();
+		mIRGenerator.GetMetaData( mIRMD );
+		mIRWidth = mIRMD.FullXRes();
+		mIRHeight = mIRMD.FullYRes();
+	}
 
-	mLastVideoFrameInfrared = mVideoInfrared;
+	if ( options.getImageEnabled() || options.getIREnabled() )
+		mColorBuffers = BufferManager<uint8_t>( 640 * 480 * 3, this );
+
+	mLastVideoFrameInfrared = mVideoInfrared = options.getIREnabled() && !options.getImageEnabled();
 
 	// user tracker
-	mUserTracker = UserTracker(mContext);
+	if ( options.getUserTrackerEnabled() )
+		mUserTracker = UserTracker( mContext );
 }
 
-OpenNI::Obj::Obj( const fs::path &recording )
+OpenNI::Obj::Obj( const fs::path &recording, const Options &options )
 	: mShouldDie( false ),
 	  mNewDepthFrame( false ),
 	  mNewVideoFrame( false ),
 	  mVideoInfrared( false ),
-	  mRecording( false )
+	  mRecording( false ),
+	  mOptions( options )
 {
 	XnStatus rc = mContext.Init();
 	checkRc( rc, "context" );
@@ -245,6 +265,7 @@ OpenNI::Obj::Obj( const fs::path &recording )
 
 		mDepthBuffers = BufferManager<uint16_t>( mDepthWidth * mDepthHeight, this );
 	}
+	mOptions.setDepthEnabled( mDepthGenerator.IsValid() );
 
 	// image
 	if ( mImageGenerator.IsValid() )
@@ -256,14 +277,15 @@ OpenNI::Obj::Obj( const fs::path &recording )
 		mColorBuffers = BufferManager<uint8_t>( mImageWidth * mImageHeight * 3, this );
 		mVideoInfrared = false;
 	}
+	mOptions.setImageEnabled( mImageGenerator.IsValid() );
 
 	// IR
 	if ( mIRGenerator.IsValid() )
 	{
 		// make new map mode -> default to 640 x 480 @ 30fps
 		XnMapOutputMode mapMode;
-		mapMode.nXRes = mDepthWidth;
-		mapMode.nYRes = mDepthHeight;
+		mapMode.nXRes = 640;
+		mapMode.nYRes = 480;
 		mapMode.nFPS  = 30;
 		mIRGenerator.SetMapOutputMode( mapMode );
 
@@ -274,9 +296,11 @@ OpenNI::Obj::Obj( const fs::path &recording )
 		mColorBuffers = BufferManager<uint8_t>( mIRWidth * mIRHeight * 3, this );
 		mVideoInfrared = true;
 	}
+	mOptions.setIREnabled( mIRGenerator.IsValid() );
 
 	// user tracker
-	mUserTracker = UserTracker( mContext );
+	if ( mOptions.getUserTrackerEnabled() )
+		mUserTracker = UserTracker( mContext );
 
 	mLastVideoFrameInfrared = mVideoInfrared;
 }
@@ -291,17 +315,22 @@ OpenNI::Obj::~Obj()
 
 void OpenNI::Obj::start()
 {
-	XnStatus rc = mDepthGenerator.StartGenerating();
-	checkRc( rc, "DepthGenerator.StartGenerating" );
+	XnStatus rc;
+	if ( mOptions.getDepthEnabled() )
+	{
+		rc = mDepthGenerator.StartGenerating();
+		checkRc( rc, "DepthGenerator.StartGenerating" );
+	}
 
-	if (!mVideoInfrared)
+	if ( mOptions.getImageEnabled() && !mVideoInfrared )
 		rc = mImageGenerator.StartGenerating();
 	else
+	if ( mOptions.getIREnabled() )
 		rc = mIRGenerator.StartGenerating();
 	checkRc( rc, "Video.StartGenerating" );
 
-	// TODO
-	mUserTracker.start();
+	if ( mOptions.getUserTrackerEnabled() )
+		mUserTracker.start();
 
 	mThread = shared_ptr< thread >( new thread( threadedFunc, this ) );
 }
@@ -310,7 +339,21 @@ void OpenNI::Obj::threadedFunc( OpenNI::Obj *obj )
 {
 	while ( !obj->mShouldDie )
 	{
-		XnStatus status = obj->mContext.WaitOneUpdateAll( obj->mDepthGenerator );
+		XnStatus status;
+		if ( obj->mDepthGenerator.IsValid() )
+		{
+			status = obj->mContext.WaitOneUpdateAll( obj->mDepthGenerator );
+		}
+		else
+		if ( obj->mImageGenerator.IsValid() && obj->mImageGenerator.IsGenerating() )
+		{
+			status = obj->mContext.WaitOneUpdateAll( obj->mImageGenerator );
+		}
+		else
+		if ( obj->mIRGenerator.IsValid() && obj->mIRGenerator.IsGenerating() )
+		{
+			status = obj->mContext.WaitOneUpdateAll( obj->mIRGenerator );
+		}
 		checkRc( status, "WaitOneUpdateAll" );
 
 		obj->generateDepth();
@@ -446,7 +489,8 @@ std::shared_ptr<uint16_t> OpenNI::getDepthData()
 
 void OpenNI::setVideoInfrared( bool infrared )
 {
-	if (mObj->mVideoInfrared == infrared)
+	if ( ( mObj->mVideoInfrared == infrared ) ||
+		 ( !mObj->mIRGenerator.IsValid() || !mObj->mImageGenerator.IsValid() ) )
 		return;
 
 	{
@@ -475,7 +519,7 @@ void OpenNI::setDepthAligned( bool aligned )
 	if ( mObj->mDepthAligned == aligned )
 		return;
 
-    if ( !mObj->mImageGenerator.IsValid() )
+    if ( !mObj->mDepthGenerator.IsValid() || !mObj->mImageGenerator.IsValid() )
         return;
 
 	{
