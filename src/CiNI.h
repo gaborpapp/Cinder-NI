@@ -126,6 +126,9 @@ class OpenNI
 		void start();
 		void stop();
 
+		//! Is the device capturing video
+		bool isCapturing() const { return mObj->mIsCapturing; }
+
 		//! Returns whether there is a new depth frame available since the last call to checkNewDepthFrame(). Call getDepthImage() to retrieve it.
 		bool			checkNewDepthFrame();
 
@@ -213,6 +216,7 @@ class OpenNI
 
 				volatile bool mDepthAligned;
 				volatile bool mMirrored;
+				volatile bool mIsCapturing;
 		};
 
 		friend class ImageSourceOpenNIColor;

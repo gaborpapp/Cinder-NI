@@ -342,10 +342,12 @@ void OpenNI::Obj::start()
 	}
 	mShouldDie = false;
 	mThread = shared_ptr< thread >( new thread( threadedFunc, this ) );
+	mIsCapturing = true;
 }
 
 void OpenNI::Obj::stop()
 {
+	mIsCapturing = false;
 	mShouldDie = true;
 	if ( mThread )
 	{
