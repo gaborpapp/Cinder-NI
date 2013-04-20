@@ -379,22 +379,26 @@ void OpenNI::Obj::threadedFunc( OpenNI::Obj *obj )
 {
 	while ( !obj->mShouldDie )
 	{
-		XnStatus status;
-		if ( obj->mDepthGenerator.IsValid() )
 		{
-			status = obj->mContext.WaitOneUpdateAll( obj->mDepthGenerator );
+			// TODO: this really drops framerate
+			//lock_guard<recursive_mutex> lock( obj->mMutex );
+			XnStatus status;
+			if ( obj->mDepthGenerator.IsValid() )
+			{
+				status = obj->mContext.WaitOneUpdateAll( obj->mDepthGenerator );
+			}
+			else
+				if ( obj->mImageGenerator.IsValid() && obj->mImageGenerator.IsGenerating() )
+				{
+					status = obj->mContext.WaitOneUpdateAll( obj->mImageGenerator );
+				}
+				else
+					if ( obj->mIRGenerator.IsValid() && obj->mIRGenerator.IsGenerating() )
+					{
+						status = obj->mContext.WaitOneUpdateAll( obj->mIRGenerator );
+					}
+			checkRc( status, "WaitOneUpdateAll" );
 		}
-		else
-		if ( obj->mImageGenerator.IsValid() && obj->mImageGenerator.IsGenerating() )
-		{
-			status = obj->mContext.WaitOneUpdateAll( obj->mImageGenerator );
-		}
-		else
-		if ( obj->mIRGenerator.IsValid() && obj->mIRGenerator.IsGenerating() )
-		{
-			status = obj->mContext.WaitOneUpdateAll( obj->mIRGenerator );
-		}
-		checkRc( status, "WaitOneUpdateAll" );
 
 		obj->generateDepth();
 		obj->generateImage();
@@ -595,6 +599,7 @@ void OpenNI::startRecording( const fs::path &filename )
 {
 	if ( !mObj->mRecording )
 	{
+		lock_guard<recursive_mutex> lock( mObj->mMutex );
 		XnStatus rc;
 		rc = mObj->mContext.FindExistingNode( XN_NODE_TYPE_RECORDER, mObj->mRecorder );
 		if ( !checkRc( rc, "Context.FindExistingNode Recorder " ) )
@@ -631,6 +636,7 @@ void OpenNI::stopRecording()
 {
 	if ( mObj->mRecording )
 	{
+		lock_guard<recursive_mutex> lock( mObj->mMutex );
 		mObj->mRecorder.Release();
 		mObj->mRecording = false;
 	}

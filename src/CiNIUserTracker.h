@@ -63,7 +63,10 @@ class UserTracker
 	protected:
 		struct Obj : BufferObj {
 			Obj( xn::Context context );
-			//~Obj();
+			~Obj();
+
+			void start();
+			void stop();
 
 			xn::Context mContext;
 
@@ -87,6 +90,14 @@ class UserTracker
 		static void XN_CALLBACK_TYPE calibrationStartCB( xn::SkeletonCapability &capability, XnUserID nId, void *pCookie );
 		static void XN_CALLBACK_TYPE calibrationEndCB( xn::SkeletonCapability &capability, XnUserID nId, XnBool bSuccess, void *pCookie );
 		static void XN_CALLBACK_TYPE userPoseDetectedCB( xn::PoseDetectionCapability &capability, const XnChar *strPose, XnUserID nId, void *pCookie );
+
+	public:
+		//@{
+		//! Emulates shared_ptr-like behavior
+		typedef std::shared_ptr<Obj> UserTracker::*unspecified_bool_type;
+		operator unspecified_bool_type() const { return ( mObj.get() == 0 ) ? 0 : &UserTracker::mObj; }
+		void reset() { mObj.reset(); }
+		//@}
 
 		//! Parent class for all exceptions
 		class Exc : cinder::Exception {};

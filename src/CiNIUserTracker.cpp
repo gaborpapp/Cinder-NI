@@ -158,18 +158,39 @@ UserTracker::Obj::Obj( xn::Context context )
 	mUserGenerator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
 }
 
-void UserTracker::start()
+UserTracker::Obj::~Obj()
+{
+	// FIXME: switching between device and recording does not work properly
+	// stop and release make it crash even more often
+	//stop();
+	//mUserGenerator.Release();
+}
+
+void UserTracker::Obj::start()
 {
 	XnStatus rc;
-	rc = mObj->mUserGenerator.StartGenerating();
+	rc = mUserGenerator.StartGenerating();
 	checkRc( rc, "UserGenerator.StartGenerating" );
+}
+
+void UserTracker::Obj::stop()
+{
+	if ( mUserGenerator.IsValid() && mUserGenerator.IsGenerating() )
+	{
+		XnStatus rc;
+		rc = mUserGenerator.StopGenerating();
+		checkRc( rc, "UserGenerator.StopGenerating" );
+	}
+}
+
+void UserTracker::start()
+{
+	mObj->start();
 }
 
 void UserTracker::stop()
 {
-	XnStatus rc;
-	rc = mObj->mUserGenerator.StopGenerating();
-	checkRc( rc, "UserGenerator.StopGenerating" );
+	mObj->stop();
 }
 
 void UserTracker::addListener( Listener *listener )
