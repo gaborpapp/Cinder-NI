@@ -163,6 +163,11 @@ class OpenNI
 
 		UserTracker		getUserTracker() { return mObj->mUserTracker; }
 
+		xn::Context & getNativeContext() { return mObj->mContext; }
+		xn::DepthGenerator & getNativeDepthGenerator() { return mObj->mDepthGenerator; }
+		xn::ImageGenerator & getNativeImageGenerator() { return mObj->mImageGenerator; }
+		xn::IRGenerator & getNativeIRGenerator() { return mObj->mIRGenerator; }
+
 	protected:
 		class Obj : public BufferObj {
 			public:
