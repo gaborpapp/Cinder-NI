@@ -312,7 +312,8 @@ OpenNI::Obj::Obj( const fs::path &recording, const Options &options )
 
 OpenNI::Obj::~Obj()
 {
-	stop();
+	if ( mIsCapturing )
+		stop();
 	mContext.Shutdown();
 }
 
