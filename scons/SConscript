@@ -1,17 +1,22 @@
 Import('env')
 
-_INCLUDES = [Dir('../src').abspath, '/usr/include/ni',
-		'/usr/include/nite']
+_INCLUDES = [Dir('../src').abspath, Dir('../include').abspath]
 
-_SOURCES = ['CiNI.cpp', 'CiNIUserTracker.cpp']
+_SOURCES = ['CiNI.cpp']
 _SOURCES = [File('../src/' + s).abspath for s in _SOURCES]
 
-_LIBS = ['OpenNI', 'usb-1.0']
-
+_LIBS = ['OpenNI2']
 if env['PLATFORM'] == 'darwin':
-	_LIBPATH = ['/usr/lib/', '/opt/local/lib/']
+	_LIBPATH = [Dir('../lib/macosx/').abspath]
 else:
 	_LIBPATH = [] # TODO
+
+# copy OpenNI2 directory to app
+if (env['PLATFORM'] == 'darwin') and ('APP_TARGET' in env):
+	for item in ['libOpenNI2.dylib', 'OpenNI.ini', 'OpenNI2']:
+		fout = env['APP_TARGET'] + '.app/Contents/MacOS/' + item
+		fin = Entry('../lib/macosx/' + item).abspath
+		Command('#' + fout, fin, Copy(fout, fin))
 
 env.Append(APP_SOURCES = _SOURCES)
 env.Append(CPPPATH = _INCLUDES)
@@ -19,3 +24,4 @@ env.Append(LIBS = _LIBS)
 env.Append(LIBPATH = _LIBPATH)
 
 Return('env')
+

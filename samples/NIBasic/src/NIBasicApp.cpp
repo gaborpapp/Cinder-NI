@@ -38,17 +38,18 @@ class NIBasicApp : public AppBasic
 		void mouseUp( MouseEvent event );
 
 	private:
-		ni::OpenNI mNI;
-		gl::Texture mColorTexture, mDepthTexture;
+		//ni::OpenNI mNI;
+		//gl::Texture mColorTexture, mDepthTexture;
 };
 
 void NIBasicApp::prepareSettings(Settings *settings)
 {
-	settings->setWindowSize( 1280, 480 );
+	settings->setWindowSize( 640, 480 );
 }
 
 void NIBasicApp::setup()
 {
+	/*
 	ni::OpenNI::Options options;
 	options.enableUserTracker( false );
 
@@ -63,32 +64,40 @@ void NIBasicApp::setup()
 	}
 
 	mNI.start();
+	*/
 }
 
 void NIBasicApp::update()
 {
+	/*
 	if ( mNI.checkNewVideoFrame() )
 		mColorTexture = mNI.getVideoImage();
 	if ( mNI.checkNewDepthFrame() )
 		mDepthTexture = mNI.getDepthImage();
+	*/
 }
 
 void NIBasicApp::draw()
 {
-	gl::clear( Color::black() );
+	gl::clear();
+	gl::setViewport( getWindowBounds() );
 	gl::setMatricesWindow( getWindowWidth(), getWindowHeight() );
 
+	/*
 	if ( mDepthTexture )
 		gl::draw( mDepthTexture );
 	if ( mColorTexture )
 		gl::draw( mColorTexture, Vec2i( 640, 0 ) );
+	*/
 }
 
 void NIBasicApp::mouseUp( MouseEvent event )
 {
+	/*
     // toggle infrared video
     mNI.setVideoInfrared( !mNI.isVideoInfrared() );
+	*/
 }
 
-CINDER_APP_BASIC( NIBasicApp, RendererGl() )
+CINDER_APP_BASIC( NIBasicApp, RendererGl )
 

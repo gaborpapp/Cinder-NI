@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2012, Gabor Papp, All rights reserved.
+ Copyright (c) 2012-2013, Gabor Papp, All rights reserved.
 
  This code is intended for use with the Cinder C++ library:
  http://libcinder.org
@@ -30,52 +30,24 @@
 
 #pragma once
 
-#include <exception>
-#include <iostream>
-#include <map>
-#include <string>
-
 #include "cinder/Cinder.h"
-#include "cinder/Thread.h"
-#include "cinder/Vector.h"
-#include "cinder/Area.h"
 #include "cinder/Exception.h"
-#include "cinder/ImageIo.h"
-#include "cinder/app/App.h"
+#include "cinder/Thread.h"
 
-#include "cinder/Surface.h"
-#include "cinder/gl/gl.h"
-#include "cinder/gl/Texture.h"
-#include "cinder/Function.h"
-
-#include <XnOpenNI.h>
-#include <XnCppWrapper.h>
-#include <XnHash.h>
-#include <XnLog.h>
+#include "OpenNI.h"
 
 #include "CiNIBufferManager.h"
-#include "CiNIUserTracker.h"
 
 namespace mndl { namespace ni {
-
-inline bool checkRc( XnStatus rc, std::string what )
-{
-	if ( rc != XN_STATUS_OK )
-	{
-		ci::app::console() << "OpenNI Error - " << what << " : " << xnGetStatusString( rc ) << std::endl;
-		return false;
-	}
-	else
-		return true;
-}
 
 class OpenNI
 {
 	public:
-		//! Options for specifying OpenNI generators
+		//! Options for specifying OpenNI parameters
 		class Options
 		{
 			public:
+				/*
 				Options( bool enableDepth = true, bool enableImage = true,
 						 bool enableIR = true, bool enableUserTracker = true )
 					: mDepthEnabled( enableDepth ), mImageEnabled( enableImage ),
@@ -103,8 +75,10 @@ class OpenNI
 				bool mImageEnabled;
 				bool mIREnabled;
 				bool mUserTrackerEnabled;
+				*/
 		};
 
+		/*
 		//! Represents the identifier for a particular OpenNI device
 		struct Device {
 			Device( int index = 0 )
@@ -122,126 +96,26 @@ class OpenNI
 
 		//! Creates a new OpenNI based on the OpenNI recording from the file path \a path.
 		OpenNI( const ci::fs::path &recording, const Options &options = Options() );
+		*/
 
-		void start();
-		void stop();
-
-		//! Is the device capturing video
-		bool isCapturing() const { return mObj->mIsCapturing; }
-
-		//! Returns whether there is a new depth frame available since the last call to checkNewDepthFrame(). Call getDepthImage() to retrieve it.
-		bool			checkNewDepthFrame();
-
-		//! Returns whether there is a new video frame available since the last call to checkNewVideoFrame(). Call getVideoImage() to retrieve it.
-		bool			checkNewVideoFrame();
-
-		//! Returns latest depth frame.
-		ci::ImageSourceRef	getDepthImage();
-
-		//! Returns latest video frame.
-		ci::ImageSourceRef	getVideoImage();
-
-		std::shared_ptr<uint8_t> getVideoData();
-		std::shared_ptr<uint16_t> getDepthData();
-
-		//! Sets the video image returned by getVideoImage() and getVideoData() to be infrared when \a infrared is true, color when it's false (the default)
-		void			setVideoInfrared( bool infrared = true );
-
-		//! Returns whether the video image returned by getVideoImage() and getVideoData() is infrared when \c true, or color when it's \c false (the default)
-		bool			isVideoInfrared() const { return mObj->mVideoInfrared; }
-
-		//! Calibrates depth to video frame.
-		void			setDepthAligned( bool aligned = true );
-		bool			isDepthAligned() const { return mObj->mDepthAligned; }
-
-		void			setMirrored( bool mirror = true );
-		bool			isMirrored() const { return mObj->mMirrored; }
-
-		void			startRecording( const ci::fs::path &filename );
-		void			stopRecording();
-		bool			isRecording() const { return mObj->mRecording; }
-
-		UserTracker		getUserTracker() { return mObj->mUserTracker; }
-
-		xn::Context & getNativeContext() { return mObj->mContext; }
-		xn::DepthGenerator & getNativeDepthGenerator() { return mObj->mDepthGenerator; }
-		xn::ImageGenerator & getNativeImageGenerator() { return mObj->mImageGenerator; }
-		xn::IRGenerator & getNativeIRGenerator() { return mObj->mIRGenerator; }
-
-	protected:
-		class Obj : public BufferObj {
+		//! Parent class for all OpenNI exceptions
+		class Exception : public ci::Exception
+		{
 			public:
-				Obj( int deviceIndex, const Options &options );
-				Obj( const ci::fs::path &recording, const Options &options );
-				~Obj();
+				virtual const char* what() const throw()
+				{
+					return mMessage;
+				}
 
-				void start();
-				void stop();
-
-				BufferManager<uint8_t> mColorBuffers;
-				BufferManager<uint16_t> mDepthBuffers;
-
-				static void threadedFunc( struct OpenNI::Obj *arg );
-
-				xn::Context mContext;
-
-				xn::DepthGenerator mDepthGenerator;
-				xn::DepthMetaData mDepthMD;
-				int mDepthWidth;
-				int mDepthHeight;
-				int mDepthMaxDepth;
-
-				xn::ImageGenerator mImageGenerator;
-				xn::ImageMetaData mImageMD;
-				int mImageWidth;
-				int mImageHeight;
-
-				xn::IRGenerator mIRGenerator;
-				xn::IRMetaData mIRMD;
-				int mIRWidth;
-				int mIRHeight;
-
-				UserTracker mUserTracker;
-
-				xn::Recorder mRecorder;
-				bool mRecording;
-
-				Options mOptions;
-
-				void generateDepth();
-				void generateImage();
-				void generateIR();
-
-				std::shared_ptr<std::thread> mThread;
-
-				volatile bool mShouldDie;
-				volatile bool mNewDepthFrame, mNewVideoFrame;
-				volatile bool mVideoInfrared;
-				volatile bool mLastVideoFrameInfrared;
-
-				volatile bool mDepthAligned;
-				volatile bool mMirrored;
-				volatile bool mIsCapturing;
+			protected:
+				char mMessage[ 1024 ];
 		};
 
-		friend class ImageSourceOpenNIColor;
-		friend class ImageSourceOpenNIInfrared;
-		friend class ImageSourceOpenNIDepth;
 
-		//friend class UserTracker;
 
-		std::shared_ptr<Obj> mObj;
-
-	public:
-		//@{
-		//! Emulates shared_ptr-like behavior
-		typedef std::shared_ptr<Obj> OpenNI::*unspecified_bool_type;
-		operator unspecified_bool_type() const { return ( mObj.get() == 0 ) ? 0 : &OpenNI::mObj; }
-		void reset() { mObj.reset(); }
-		//@}
 };
 
-//! Parent class for all OpenNI exceptions
+/*
 class OpenNIExc : std::exception {};
 
 //! Exception thrown from a failure to open a file recording
@@ -255,6 +129,7 @@ class ExcFailedImageGeneratorInit : public OpenNIExc {};
 
 //! Exception thrown from a failure to create an IR generator
 class ExcFailedIRGeneratorInit : public OpenNIExc {};
+*/
 
 } } // namespace mndl::ni
 
