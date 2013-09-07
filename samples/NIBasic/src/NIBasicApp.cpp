@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2012 Gabor Papp
+ Copyright (c) 2012-2013, Gabor Papp
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -24,13 +24,13 @@
 using namespace ci;
 using namespace ci::app;
 using namespace std;
-using namespace mndl;
 
 class NIBasicApp : public AppBasic
 {
 	public:
 		void prepareSettings( Settings *settings );
 		void setup();
+		void shutdown();
 
 		void update();
 		void draw();
@@ -38,7 +38,7 @@ class NIBasicApp : public AppBasic
 		void mouseUp( MouseEvent event );
 
 	private:
-		//ni::OpenNI mNI;
+		mndl::ni::DeviceStreamRef mNIDeviceStreamRef;
 		//gl::Texture mColorTexture, mDepthTexture;
 };
 
@@ -49,6 +49,13 @@ void NIBasicApp::prepareSettings(Settings *settings)
 
 void NIBasicApp::setup()
 {
+	if ( openni::OpenNI::initialize() != openni::STATUS_OK )
+	{
+	    console() << openni::OpenNI::getExtendedError() << endl;
+		quit();
+	}
+
+	mNIDeviceStreamRef = mndl::ni::DeviceStream::create( openni::ANY_DEVICE );
 	/*
 	ni::OpenNI::Options options;
 	options.enableUserTracker( false );
@@ -65,6 +72,11 @@ void NIBasicApp::setup()
 
 	mNI.start();
 	*/
+}
+
+void NIBasicApp::shutdown()
+{
+	openni::OpenNI::shutdown();
 }
 
 void NIBasicApp::update()

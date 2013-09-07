@@ -40,96 +40,60 @@
 
 namespace mndl { namespace ni {
 
-class OpenNI
+//! Parent class for all OpenNI exceptions
+class ExcOpenNI : public ci::Exception
 {
 	public:
-		//! Options for specifying OpenNI parameters
-		class Options
+		ExcOpenNI() throw();
+
+		virtual const char* what() const throw()
 		{
-			public:
-				/*
-				Options( bool enableDepth = true, bool enableImage = true,
-						 bool enableIR = true, bool enableUserTracker = true )
-					: mDepthEnabled( enableDepth ), mImageEnabled( enableImage ),
-					  mIREnabled( enableIR ), mUserTrackerEnabled( enableUserTracker )
-				{}
+			return mMessage;
+		}
 
-				Options &enableDepth( bool enable = true ) { mDepthEnabled = enable; return *this; }
-				bool getDepthEnabled() const { return mDepthEnabled; }
-				void setDepthEnabled( bool enable = true ) { mDepthEnabled = enable; }
-
-				Options &enableImage( bool enable = true ) { mImageEnabled = enable; return *this; }
-				bool getImageEnabled() const { return mImageEnabled; }
-				void setImageEnabled( bool enable = true ) { mImageEnabled = enable; }
-
-				Options &enableIR( bool enable = true ) { mIREnabled = enable; return *this; }
-				bool getIREnabled() const { return mIREnabled; }
-				void setIREnabled( bool enable = true ) { mIREnabled = enable; }
-
-				Options &enableUserTracker( bool enable = true ) { mUserTrackerEnabled = enable; return *this; }
-				bool getUserTrackerEnabled() const { return mUserTrackerEnabled; }
-				void setUserTrackerEnabled( bool enable = true ) { mUserTrackerEnabled = enable; }
-
-			private:
-				bool mDepthEnabled;
-				bool mImageEnabled;
-				bool mIREnabled;
-				bool mUserTrackerEnabled;
-				*/
-		};
-
-		/*
-		//! Represents the identifier for a particular OpenNI device
-		struct Device {
-			Device( int index = 0 )
-				: mIndex( index )
-			{}
-
-			int     mIndex;
-		};
-
-		//! Default constructor - creates an uninitialized instance
-		OpenNI() {}
-
-		//! Creates a new OpenNI based on Device # \a device. 0 is the typical value for \a deviceIndex.
-		OpenNI( Device device, const Options &options = Options() );
-
-		//! Creates a new OpenNI based on the OpenNI recording from the file path \a path.
-		OpenNI( const ci::fs::path &recording, const Options &options = Options() );
-		*/
-
-		//! Parent class for all OpenNI exceptions
-		class Exception : public ci::Exception
-		{
-			public:
-				virtual const char* what() const throw()
-				{
-					return mMessage;
-				}
-
-			protected:
-				char mMessage[ 1024 ];
-		};
-
-
-
+	protected:
+		char mMessage[ 1024 ];
 };
 
-/*
-class OpenNIExc : std::exception {};
+typedef std::shared_ptr< class DeviceStream > DeviceStreamRef;
 
-//! Exception thrown from a failure to open a file recording
-class ExcFailedOpenFileRecording : public OpenNIExc {};
+class DeviceStream : public openni::VideoStream::NewFrameListener
+{
+	public:
+		//! Options for specifying DeviceStream parameters
+		struct Options
+		{
+			Options() : mEnableDepth( true ), mEnableColor( true ), mEnableIR( false ) {}
 
-//! Exception thrown from a failure to create a depth generator
-class ExcFailedDepthGeneratorInit : public OpenNIExc {};
+			bool mEnableDepth;
+			bool mEnableColor;
+			bool mEnableIR;
+		};
 
-//! Exception thrown from a failure to create an image generator
-class ExcFailedImageGeneratorInit : public OpenNIExc {};
+		static DeviceStreamRef create( const char *deviceUri, const Options &options = Options() )
+		{ return DeviceStreamRef( new DeviceStream( deviceUri, options ) ); }
 
-//! Exception thrown from a failure to create an IR generator
-class ExcFailedIRGeneratorInit : public OpenNIExc {};
-*/
+		~DeviceStream();
+
+		void start();
+		void stop();
+
+		class ExcFailedOpenDevice : public ExcOpenNI {};
+		class ExcFailedCreateDepthStream : public ExcOpenNI {};
+		class ExcFailedStartDepthStream : public ExcOpenNI {};
+
+	protected:
+		DeviceStream( const char *deviceUri, const Options &options );
+
+		std::shared_ptr< openni::Device > mDeviceRef;
+
+		std::mutex mMutex;
+
+		std::shared_ptr< openni::VideoStream > mDepthStreamRef;
+		std::shared_ptr< openni::VideoStream > mColorStreamRef;
+
+		void onNewFrame( openni::VideoStream &videoStream );
+};
 
 } } // namespace mndl::ni
 

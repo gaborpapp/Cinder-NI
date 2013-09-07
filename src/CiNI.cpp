@@ -28,12 +28,89 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <cstdio>
+
 #include "cinder/app/App.h"
 
 #include "CiNI.h"
 
 namespace mndl { namespace ni {
 
+DeviceStream::DeviceStream( const char *deviceUri, const Options &options )
+{
+	mDeviceRef = std::shared_ptr< openni::Device >( new openni::Device() );
+
+	openni::Status rc;
+	rc = mDeviceRef->open( deviceUri );
+	if ( rc != openni::STATUS_OK )
+	{
+		throw ExcFailedOpenDevice();
+	}
+
+	if ( options.mEnableDepth )
+	{
+		mDepthStreamRef = std::shared_ptr< openni::VideoStream >( new openni::VideoStream() );
+		if ( mDepthStreamRef->create( *mDeviceRef.get(), openni::SENSOR_DEPTH ) )
+		{
+			throw ExcFailedCreateDepthStream();
+		}
+		mDepthStreamRef->addNewFrameListener( this );
+	}
+}
+
+DeviceStream::~DeviceStream()
+{
+	if ( mDepthStreamRef )
+	{
+		mDepthStreamRef->stop();
+		mDepthStreamRef->removeNewFrameListener( this );
+		mDepthStreamRef->destroy();
+	}
+
+	if ( mDeviceRef )
+	{
+		mDeviceRef->close();
+	}
+}
+
+void DeviceStream::start()
+{
+	if ( mDepthStreamRef )
+	{
+		if ( mDepthStreamRef->start() != openni::STATUS_OK )
+		{
+			throw ExcFailedStartDepthStream();
+		}
+	}
+}
+
+void DeviceStream::stop()
+{
+	if ( mDepthStreamRef )
+	{
+		mDepthStreamRef->stop();
+	}
+}
+
+void DeviceStream::onNewFrame( openni::VideoStream &videoStream )
+{
+	openni::VideoFrameRef frame;
+	videoStream.readFrame( &frame );
+	switch ( frame.getSensorType() )
+	{
+		case openni::SENSOR_DEPTH:
+		{
+			break;
+		}
+		default:
+			break;
+	}
+}
+
+ExcOpenNI::ExcOpenNI() throw()
+{
+	sprintf( mMessage, "%s", openni::OpenNI::getExtendedError() );
+}
 
 } } // namespace mndl::ni
 
