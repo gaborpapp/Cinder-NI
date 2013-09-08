@@ -61,7 +61,7 @@ void OniBasicApp::setup()
 	depthMode.setResolution( 640, 480 );
 	depthMode.setFps( 30 );
 	depthMode.setPixelFormat( openni::PIXEL_FORMAT_DEPTH_1_MM );
-	mOniCaptureRef->getDepthStreamRef()->setVideoMode( depthMode );
+	mOniCaptureRef->getDepthStream().setVideoMode( depthMode );
 
 	mOniCaptureRef->start();
 }

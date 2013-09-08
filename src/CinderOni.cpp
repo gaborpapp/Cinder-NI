@@ -81,8 +81,7 @@ OniCapture::OniCapture( const char *deviceUri, const Options &options ) :
 
 	if ( options.mEnableDepth )
 	{
-		mDepthStreamRef = std::shared_ptr< openni::VideoStream >( new openni::VideoStream() );
-		if ( mDepthStreamRef->create( *mDeviceRef.get(), openni::SENSOR_DEPTH ) )
+		if ( mDepthStream.create( *mDeviceRef.get(), openni::SENSOR_DEPTH ) )
 		{
 			throw ExcFailedCreateDepthStream();
 		}
@@ -93,9 +92,9 @@ OniCapture::~OniCapture()
 {
 	stop();
 
-	if ( mDepthStreamRef )
+	if ( mDepthStream.isValid() )
 	{
-		mDepthStreamRef->destroy();
+		mDepthStream.destroy();
 	}
 
 	if ( mDeviceRef )
@@ -106,34 +105,34 @@ OniCapture::~OniCapture()
 
 void OniCapture::start()
 {
-	if ( mDepthStreamRef )
+	if ( mDepthStream.isValid() )
 	{
-		if ( mDepthStreamRef->start() != openni::STATUS_OK )
+		if ( mDepthStream.start() != openni::STATUS_OK )
 		{
 			throw ExcFailedStartDepthStream();
 		}
 
-		openni::PixelFormat pf = mDepthStreamRef->getVideoMode().getPixelFormat();
+		openni::PixelFormat pf = mDepthStream.getVideoMode().getPixelFormat();
 		if ( pf != openni::PIXEL_FORMAT_DEPTH_1_MM &&
 			 pf != openni::PIXEL_FORMAT_DEPTH_100_UM )
 		{
 			throw ExcUnknownDepthFrameFormat();
 		}
 
-		mDepthWidth = mDepthStreamRef->getVideoMode().getResolutionX();
-		mDepthHeight = mDepthStreamRef->getVideoMode().getResolutionY();
+		mDepthWidth = mDepthStream.getVideoMode().getResolutionX();
+		mDepthHeight = mDepthStream.getVideoMode().getResolutionY();
 		mDepthBuffers = BufferManager< uint16_t >( mDepthWidth * mDepthHeight, this );
 
-		mDepthStreamRef->addNewFrameListener( this );
+		mDepthStream.addNewFrameListener( this );
 	}
 }
 
 void OniCapture::stop()
 {
-	if ( mDepthStreamRef )
+	if ( mDepthStream.isValid() )
 	{
-		mDepthStreamRef->stop();
-		mDepthStreamRef->removeNewFrameListener( this );
+		mDepthStream.stop();
+		mDepthStream.removeNewFrameListener( this );
 	}
 }
 

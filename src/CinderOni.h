@@ -77,7 +77,7 @@ class OniCapture : public openni::VideoStream::NewFrameListener, public BufferOb
 		~OniCapture();
 
 		std::shared_ptr< openni::Device > getDeviceRef() { return mDeviceRef; }
-		std::shared_ptr< openni::VideoStream > getDepthStreamRef() { return mDepthStreamRef; }
+		openni::VideoStream & getDepthStream() { return mDepthStream; }
 
 		void start();
 		void stop();
@@ -96,12 +96,12 @@ class OniCapture : public openni::VideoStream::NewFrameListener, public BufferOb
 
 		std::shared_ptr< openni::Device > mDeviceRef;
 
-		std::shared_ptr< openni::VideoStream > mDepthStreamRef;
+		openni::VideoStream mDepthStream;
 		BufferManager< uint16_t > mDepthBuffers;
 		int mDepthWidth, mDepthHeight;
 		bool mNewDepthFrame;
 
-		std::shared_ptr< openni::VideoStream > mColorStreamRef;
+		openni::VideoStream mColorStreamRef;
 		BufferManager< uint8_t > mColorBuffers;
 
 		void onNewFrame( openni::VideoStream &videoStream );
