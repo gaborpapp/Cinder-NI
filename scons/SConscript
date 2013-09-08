@@ -5,7 +5,7 @@ _INCLUDES = [Dir('../src').abspath, Dir('../include').abspath]
 _SOURCES = ['CinderOni.cpp']
 _SOURCES = [File('../src/' + s).abspath for s in _SOURCES]
 
-_LIBS = ['OpenNI2']
+_LIBS = ['OpenNI2', 'NiTE2']
 if env['PLATFORM'] == 'darwin':
 	_LIBPATH = [Dir('../lib/macosx/').abspath]
 else:
@@ -13,7 +13,8 @@ else:
 
 # copy OpenNI2 directory to app
 if (env['PLATFORM'] == 'darwin') and ('APP_TARGET' in env):
-	for item in ['libOpenNI2.dylib', 'OpenNI.ini', 'OpenNI2']:
+	for item in ['libOpenNI2.dylib', 'OpenNI.ini', 'OpenNI2', \
+					'NiTE.ini', 'NiTE2', 'libNiTE2.dylib']:
 		fout = env['APP_TARGET'] + '.app/Contents/MacOS/' + item
 		fin = Entry('../lib/macosx/' + item).abspath
 		Command('#' + fout, fin, Copy(fout, fin))
