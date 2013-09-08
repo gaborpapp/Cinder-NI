@@ -2,7 +2,7 @@ Import('env')
 
 _INCLUDES = [Dir('../src').abspath, Dir('../include').abspath]
 
-_SOURCES = ['CiNI.cpp']
+_SOURCES = ['CinderOni.cpp']
 _SOURCES = [File('../src/' + s).abspath for s in _SOURCES]
 
 _LIBS = ['OpenNI2']

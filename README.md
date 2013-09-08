@@ -1,6 +1,6 @@
 
-Cinder-NI
----------
+Cinder-Oni
+----------
 
 OpenNI2 Cinder block
 

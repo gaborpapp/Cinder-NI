@@ -18,14 +18,15 @@
 #include "cinder/Cinder.h"
 #include "cinder/app/AppBasic.h"
 #include "cinder/gl/gl.h"
+#include "cinder/gl/Texture.h"
 
-#include "CiNI.h"
+#include "CinderOni.h"
 
 using namespace ci;
 using namespace ci::app;
 using namespace std;
 
-class NIBasicApp : public AppBasic
+class OniBasicApp : public AppBasic
 {
 	public:
 		void prepareSettings( Settings *settings );
@@ -38,16 +39,16 @@ class NIBasicApp : public AppBasic
 		void mouseUp( MouseEvent event );
 
 	private:
-		mndl::ni::DeviceStreamRef mNIDeviceStreamRef;
-		//gl::Texture mColorTexture, mDepthTexture;
+		mndl::oni::OniCaptureRef mOniCaptureRef;
+		gl::Texture mColorTexture, mDepthTexture;
 };
 
-void NIBasicApp::prepareSettings(Settings *settings)
+void OniBasicApp::prepareSettings(Settings *settings)
 {
 	settings->setWindowSize( 640, 480 );
 }
 
-void NIBasicApp::setup()
+void OniBasicApp::setup()
 {
 	if ( openni::OpenNI::initialize() != openni::STATUS_OK )
 	{
@@ -55,55 +56,46 @@ void NIBasicApp::setup()
 		quit();
 	}
 
-	mNIDeviceStreamRef = mndl::ni::DeviceStream::create( openni::ANY_DEVICE );
-	/*
-	ni::OpenNI::Options options;
-	options.enableUserTracker( false );
+	mOniCaptureRef = mndl::oni::OniCapture::create( openni::ANY_DEVICE );
+	openni::VideoMode depthMode;
+	depthMode.setResolution( 640, 480 );
+	depthMode.setFps( 30 );
+	depthMode.setPixelFormat( openni::PIXEL_FORMAT_DEPTH_1_MM );
+	mOniCaptureRef->getDepthStreamRef()->setVideoMode( depthMode );
 
-	try
-	{
-		mNI = ni::OpenNI( ni::OpenNI::Device(), options );
-	}
-	catch ( ni::OpenNIExc &exc )
-	{
-		console() << "Could not open Kinect" << endl;
-		quit();
-	}
-
-	mNI.start();
-	*/
+	mOniCaptureRef->start();
 }
 
-void NIBasicApp::shutdown()
+void OniBasicApp::shutdown()
 {
 	openni::OpenNI::shutdown();
 }
 
-void NIBasicApp::update()
+void OniBasicApp::update()
 {
 	/*
 	if ( mNI.checkNewVideoFrame() )
 		mColorTexture = mNI.getVideoImage();
-	if ( mNI.checkNewDepthFrame() )
-		mDepthTexture = mNI.getDepthImage();
 	*/
+	if ( mOniCaptureRef->checkNewDepthFrame() )
+		mDepthTexture = mOniCaptureRef->getDepthImage();
 }
 
-void NIBasicApp::draw()
+void OniBasicApp::draw()
 {
 	gl::clear();
 	gl::setViewport( getWindowBounds() );
 	gl::setMatricesWindow( getWindowWidth(), getWindowHeight() );
 
-	/*
 	if ( mDepthTexture )
 		gl::draw( mDepthTexture );
+	/*
 	if ( mColorTexture )
 		gl::draw( mColorTexture, Vec2i( 640, 0 ) );
 	*/
 }
 
-void NIBasicApp::mouseUp( MouseEvent event )
+void OniBasicApp::mouseUp( MouseEvent event )
 {
 	/*
     // toggle infrared video
@@ -111,5 +103,5 @@ void NIBasicApp::mouseUp( MouseEvent event )
 	*/
 }
 
-CINDER_APP_BASIC( NIBasicApp, RendererGl )
+CINDER_APP_BASIC( OniBasicApp, RendererGl )
 

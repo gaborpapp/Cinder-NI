@@ -35,7 +35,7 @@
 
 #include <map>
 
-namespace mndl { namespace ni {
+namespace mndl { namespace oni {
 
 struct BufferObj
 {
@@ -144,5 +144,5 @@ class DataDeleter
 		BufferManager<T> *mBufferMgr;
 };
 
-} } // namespace mndl::ni
+} } // namespace mndl::oni
 

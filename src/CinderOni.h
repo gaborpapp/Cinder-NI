@@ -32,13 +32,14 @@
 
 #include "cinder/Cinder.h"
 #include "cinder/Exception.h"
+#include "cinder/ImageIo.h"
 #include "cinder/Thread.h"
 
 #include "OpenNI.h"
 
-#include "CiNIBufferManager.h"
+#include "BufferManager.h"
 
-namespace mndl { namespace ni {
+namespace mndl { namespace oni {
 
 //! Parent class for all OpenNI exceptions
 class ExcOpenNI : public ci::Exception
@@ -55,12 +56,12 @@ class ExcOpenNI : public ci::Exception
 		char mMessage[ 1024 ];
 };
 
-typedef std::shared_ptr< class DeviceStream > DeviceStreamRef;
+typedef std::shared_ptr< class OniCapture > OniCaptureRef;
 
-class DeviceStream : public openni::VideoStream::NewFrameListener
+class OniCapture : public openni::VideoStream::NewFrameListener, public BufferObj
 {
 	public:
-		//! Options for specifying DeviceStream parameters
+		//! Options for specifying OniCapture parameters
 		struct Options
 		{
 			Options() : mEnableDepth( true ), mEnableColor( true ), mEnableIR( false ) {}
@@ -70,30 +71,43 @@ class DeviceStream : public openni::VideoStream::NewFrameListener
 			bool mEnableIR;
 		};
 
-		static DeviceStreamRef create( const char *deviceUri, const Options &options = Options() )
-		{ return DeviceStreamRef( new DeviceStream( deviceUri, options ) ); }
+		static OniCaptureRef create( const char *deviceUri, const Options &options = Options() )
+		{ return OniCaptureRef( new OniCapture( deviceUri, options ) ); }
 
-		~DeviceStream();
+		~OniCapture();
+
+		std::shared_ptr< openni::Device > getDeviceRef() { return mDeviceRef; }
+		std::shared_ptr< openni::VideoStream > getDepthStreamRef() { return mDepthStreamRef; }
 
 		void start();
 		void stop();
 
+		bool checkNewDepthFrame();
+		ci::ImageSourceRef getDepthImage();
+
 		class ExcFailedOpenDevice : public ExcOpenNI {};
 		class ExcFailedCreateDepthStream : public ExcOpenNI {};
 		class ExcFailedStartDepthStream : public ExcOpenNI {};
+		class ExcFailedReadStream : public ExcOpenNI {};
+		class ExcUnknownDepthFrameFormat : public ExcOpenNI {};
 
 	protected:
-		DeviceStream( const char *deviceUri, const Options &options );
+		OniCapture( const char *deviceUri, const Options &options );
 
 		std::shared_ptr< openni::Device > mDeviceRef;
 
-		std::mutex mMutex;
-
 		std::shared_ptr< openni::VideoStream > mDepthStreamRef;
+		BufferManager< uint16_t > mDepthBuffers;
+		int mDepthWidth, mDepthHeight;
+		bool mNewDepthFrame;
+
 		std::shared_ptr< openni::VideoStream > mColorStreamRef;
+		BufferManager< uint8_t > mColorBuffers;
 
 		void onNewFrame( openni::VideoStream &videoStream );
+
+		friend class ImageSourceOniDepth;
 };
 
-} } // namespace mndl::ni
+} } // namespace mndl::oni
 

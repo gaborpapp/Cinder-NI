@@ -1,9 +1,9 @@
 env = Environment()
 
-env['APP_TARGET'] = 'NIBasicApp'
-env['APP_SOURCES'] = ['NIBasicApp.cpp']
+env['APP_TARGET'] = 'OniBasicApp'
+env['APP_SOURCES'] = ['OniBasicApp.cpp']
 
-# Cinder-NI
+# CinderOni
 env = SConscript('../../../scons/SConscript', exports = 'env')
 
 SConscript('../../../../../scons/SConscript', exports = 'env')
