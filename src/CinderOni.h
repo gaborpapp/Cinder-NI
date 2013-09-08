@@ -33,13 +33,36 @@
 #include "cinder/Cinder.h"
 #include "cinder/Exception.h"
 #include "cinder/ImageIo.h"
+#include "cinder/Quaternion.h"
 #include "cinder/Thread.h"
+#include "cinder/Vector.h"
 
 #include "OpenNI.h"
+#include "NiTE.h"
 
 #include "BufferManager.h"
 
 namespace mndl { namespace oni {
+
+inline ci::Vec3f fromOni( const nite::Point3f &v )
+{
+	return ci::Vec3f( v.x, v.y, v.z );
+}
+
+inline nite::Point3f toOni( const ci::Vec3f &v )
+{
+	return nite::Point3f( v.x, v.y, v.z );
+}
+
+inline ci::Quatf fromOni( const nite::Quaternion &q )
+{
+	return ci::Quatf( q.w, q.x, q.y, q.z );
+}
+
+inline nite::Quaternion toOni( const ci::Quatf &q )
+{
+	return nite::Quaternion( q.w, q.v.x, q.v.y, q.v.z );
+}
 
 //! Parent class for all OpenNI exceptions
 class ExcOpenNI : public ci::Exception
