@@ -45,7 +45,7 @@ class OniBasicApp : public AppBasic
 
 void OniBasicApp::prepareSettings(Settings *settings)
 {
-	settings->setWindowSize( 640, 480 );
+	settings->setWindowSize( 1280, 480 );
 }
 
 void OniBasicApp::setup()
@@ -56,27 +56,50 @@ void OniBasicApp::setup()
 		quit();
 	}
 
-	mOniCaptureRef = mndl::oni::OniCapture::create( openni::ANY_DEVICE );
+	try
+	{
+		mOniCaptureRef = mndl::oni::OniCapture::create( openni::ANY_DEVICE );
+	}
+	catch( const mndl::oni::OniCapture::ExcFailedCreateColorStream &exc )
+	{
+		mndl::oni::OniCapture::Options options;
+		options.mEnableColor = false;
+		mOniCaptureRef = mndl::oni::OniCapture::create( openni::ANY_DEVICE, options );
+	}
+	catch( const mndl::oni::ExcOpenNI &exc )
+	{
+		console() << exc.what() << endl;
+		quit();
+	}
+
 	openni::VideoMode depthMode;
 	depthMode.setResolution( 640, 480 );
 	depthMode.setFps( 30 );
 	depthMode.setPixelFormat( openni::PIXEL_FORMAT_DEPTH_1_MM );
 	mOniCaptureRef->getDepthStream().setVideoMode( depthMode );
 
+	if ( mOniCaptureRef->getColorStream().isValid() )
+	{
+		openni::VideoMode colorMode;
+		colorMode.setResolution( 640, 480 );
+		colorMode.setFps( 30 );
+		colorMode.setPixelFormat( openni::PIXEL_FORMAT_RGB888 );
+		mOniCaptureRef->getColorStream().setVideoMode( colorMode );
+	}
+
 	mOniCaptureRef->start();
 }
 
 void OniBasicApp::shutdown()
 {
+	mOniCaptureRef->stop();
 	openni::OpenNI::shutdown();
 }
 
 void OniBasicApp::update()
 {
-	/*
-	if ( mNI.checkNewVideoFrame() )
-		mColorTexture = mNI.getVideoImage();
-	*/
+	if ( mOniCaptureRef->checkNewColorFrame() )
+		mColorTexture = mOniCaptureRef->getColorImage();
 	if ( mOniCaptureRef->checkNewDepthFrame() )
 		mDepthTexture = mOniCaptureRef->getDepthImage();
 }
@@ -89,10 +112,10 @@ void OniBasicApp::draw()
 
 	if ( mDepthTexture )
 		gl::draw( mDepthTexture );
-	/*
-	if ( mColorTexture )
+	if ( !mOniCaptureRef->getColorStream().isValid() )
+		gl::drawStringCentered( "No color stream available!", Vec2i( 960, 240 ) );
+	else if ( mColorTexture )
 		gl::draw( mColorTexture, Vec2i( 640, 0 ) );
-	*/
 }
 
 void OniBasicApp::mouseUp( MouseEvent event )

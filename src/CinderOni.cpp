@@ -39,8 +39,8 @@ namespace mndl { namespace oni {
 class ImageSourceOniDepth : public ci::ImageSource
 {
 	public:
-		ImageSourceOniDepth( uint16_t *buffer, int w, int h, OniCapture *ownerObj )
-			: ImageSource(), mData( buffer ), mOwnerObj( ownerObj )
+		ImageSourceOniDepth( uint16_t *buffer, int w, int h, std::shared_ptr< OniCapture::DepthListener > ownerObj )
+			: ImageSource(), mOwnerObj( ownerObj ), mData( buffer )
 		{
 			setSize( w, h );
 			setColorModel( ci::ImageIo::CM_GRAY );
@@ -63,47 +63,59 @@ class ImageSourceOniDepth : public ci::ImageSource
 		}
 
 	protected:
-		OniCapture *mOwnerObj;
+		std::shared_ptr< OniCapture::DepthListener > mOwnerObj;
 		uint16_t *mData;
 };
 
-OniCapture::OniCapture( const char *deviceUri, const Options &options ) :
+class ImageSourceOniColor : public ci::ImageSource
+{
+	public:
+		ImageSourceOniColor( uint8_t *buffer, int w, int h, std::shared_ptr< OniCapture::ColorListener > ownerObj )
+			: ImageSource(), mOwnerObj( ownerObj ), mData( buffer )
+		{
+			setSize( w, h );
+			setColorModel( ci::ImageIo::CM_RGB );
+			setChannelOrder( ci::ImageIo::RGB );
+			setDataType( ci::ImageIo::UINT8 );
+		}
+
+		~ImageSourceOniColor()
+		{
+			// let the owner know we are done with the buffer
+			mOwnerObj->mColorBuffers.derefBuffer( mData );
+		}
+
+		virtual void load( ci::ImageTargetRef target )
+		{
+			ci::ImageSource::RowFunc func = setupRowFunc( target );
+
+			for( int32_t row = 0; row < mHeight; ++row )
+				((*this).*func)( target, row, mData + row * mWidth * 3 );
+		}
+
+	protected:
+		std::shared_ptr< OniCapture::ColorListener > mOwnerObj;
+		uint8_t *mData;
+};
+
+OniCapture::DepthListener::DepthListener( std::shared_ptr< openni::Device > deviceRef ) :
 	mNewDepthFrame( false )
 {
-	mDeviceRef = std::shared_ptr< openni::Device >( new openni::Device() );
-
-	openni::Status rc;
-	rc = mDeviceRef->open( deviceUri );
-	if ( rc != openni::STATUS_OK )
+	if ( mDepthStream.create( *deviceRef.get(), openni::SENSOR_DEPTH ) )
 	{
-		throw ExcFailedOpenDevice();
-	}
-
-	if ( options.mEnableDepth )
-	{
-		if ( mDepthStream.create( *mDeviceRef.get(), openni::SENSOR_DEPTH ) )
-		{
-			throw ExcFailedCreateDepthStream();
-		}
+		throw ExcFailedCreateDepthStream();
 	}
 }
 
-OniCapture::~OniCapture()
+OniCapture::DepthListener::~DepthListener()
 {
-	stop();
-
 	if ( mDepthStream.isValid() )
 	{
 		mDepthStream.destroy();
 	}
-
-	if ( mDeviceRef )
-	{
-		mDeviceRef->close();
-	}
 }
 
-void OniCapture::start()
+void OniCapture::DepthListener::start()
 {
 	if ( mDepthStream.isValid() )
 	{
@@ -116,7 +128,7 @@ void OniCapture::start()
 		if ( pf != openni::PIXEL_FORMAT_DEPTH_1_MM &&
 			 pf != openni::PIXEL_FORMAT_DEPTH_100_UM )
 		{
-			throw ExcUnknownDepthFrameFormat();
+			throw ExcUnknownDepthPixelFormat();
 		}
 
 		mDepthWidth = mDepthStream.getVideoMode().getResolutionX();
@@ -127,7 +139,7 @@ void OniCapture::start()
 	}
 }
 
-void OniCapture::stop()
+void OniCapture::DepthListener::stop()
 {
 	if ( mDepthStream.isValid() )
 	{
@@ -136,7 +148,7 @@ void OniCapture::stop()
 	}
 }
 
-void OniCapture::onNewFrame( openni::VideoStream &videoStream )
+void OniCapture::DepthListener::onNewFrame( openni::VideoStream &videoStream )
 {
 	openni::VideoFrameRef frame;
 	openni::Status rc = videoStream.readFrame( &frame );
@@ -145,46 +157,205 @@ void OniCapture::onNewFrame( openni::VideoStream &videoStream )
 		throw ExcFailedReadStream();
 	}
 
-	switch ( frame.getSensorType() )
+	std::lock_guard< std::recursive_mutex > lock( mMutex );
+	const int minDepthValue = videoStream.getMinPixelValue();
+	const int maxDepthValue = videoStream.getMaxPixelValue();
+	const uint16_t *depth = reinterpret_cast< const uint16_t * >( frame.getData() );
+	mDepthBuffers.derefActiveBuffer();
+	uint16_t *destPixels = mDepthBuffers.getNewBuffer();
+	const uint32_t depthScale = 0xffff0000 / ( maxDepthValue - minDepthValue );
+	for ( size_t p = 0; p < mDepthWidth * mDepthHeight; ++p )
 	{
-		case openni::SENSOR_DEPTH:
+		uint32_t v = depth[ p ] - minDepthValue;
+		destPixels[ p ] = ( depthScale * v ) >> 16;
+	}
+	mDepthBuffers.setActiveBuffer( destPixels );
+	mNewDepthFrame = true;
+}
+
+OniCapture::ColorListener::ColorListener( std::shared_ptr< openni::Device > deviceRef ) :
+	mNewColorFrame( false )
+{
+	if ( mColorStream.create( *deviceRef.get(), openni::SENSOR_COLOR ) )
+	{
+		throw ExcFailedCreateColorStream();
+	}
+}
+
+OniCapture::ColorListener::~ColorListener()
+{
+	if ( mColorStream.isValid() )
+	{
+		mColorStream.destroy();
+	}
+}
+
+void OniCapture::ColorListener::start()
+{
+	if ( mColorStream.isValid() )
+	{
+		if ( mColorStream.start() != openni::STATUS_OK )
 		{
-			std::lock_guard< std::recursive_mutex > lock( mMutex );
-			const int minDepthValue = videoStream.getMinPixelValue();
-			const int maxDepthValue = videoStream.getMaxPixelValue();
-			const uint16_t *depth = reinterpret_cast< const uint16_t * >( frame.getData() );
-			mDepthBuffers.derefActiveBuffer(); // finished with current active buffer
-			uint16_t *destPixels = mDepthBuffers.getNewBuffer(); // request a new buffer
-			const uint32_t depthScale = 0xffff0000 / ( maxDepthValue - minDepthValue );
-			for ( size_t p = 0; p < mDepthWidth * mDepthHeight; ++p )
-			{
-				uint32_t v = depth[ p ] - minDepthValue;
-				destPixels[ p ] = ( depthScale * v ) >> 16;
-			}
-			mDepthBuffers.setActiveBuffer( destPixels ); // set this new buffer to be the current active buffer
-			mNewDepthFrame = true; // flag that there's a new depth frame
-			break;
+			throw ExcFailedStartColorStream();
 		}
 
-		default:
-			break;
+		openni::PixelFormat pf = mColorStream.getVideoMode().getPixelFormat();
+		if ( pf != openni::PIXEL_FORMAT_RGB888 )
+		{
+			throw ExcUnknownColorPixelFormat();
+		}
+
+		mColorWidth = mColorStream.getVideoMode().getResolutionX();
+		mColorHeight = mColorStream.getVideoMode().getResolutionY();
+		mColorBuffers = BufferManager< uint8_t >( mColorWidth * mColorHeight * 3, this );
+
+		mColorStream.addNewFrameListener( this );
+	}
+}
+
+void OniCapture::ColorListener::stop()
+{
+	if ( mColorStream.isValid() )
+	{
+		mColorStream.stop();
+		mColorStream.removeNewFrameListener( this );
+	}
+}
+
+void OniCapture::ColorListener::onNewFrame( openni::VideoStream &videoStream )
+{
+	openni::VideoFrameRef frame;
+	openni::Status rc = videoStream.readFrame( &frame );
+	if ( rc != openni::STATUS_OK )
+	{
+		throw ExcFailedReadStream();
+	}
+
+	std::lock_guard< std::recursive_mutex > lock( mMutex );
+	const uint8_t *srcPixels = reinterpret_cast< const uint8_t * >( frame.getData() );
+	mColorBuffers.derefActiveBuffer();
+	uint8_t *destPixels = mColorBuffers.getNewBuffer();
+	int destStride = mColorWidth * 3;
+	int srcStride = frame.getStrideInBytes();
+	if ( destStride == srcStride )
+	{
+		memcpy( destPixels, srcPixels, destStride * mColorHeight );
+	}
+	else
+	{
+		uint8_t *dst = destPixels;
+		for ( int y = 0; y < mColorHeight; y++ )
+		{
+			memcpy( dst, srcPixels, destStride );
+			srcPixels += srcStride;
+			dst += destStride;
+		}
+	}
+	mColorBuffers.setActiveBuffer( destPixels );
+	mNewColorFrame = true;
+}
+
+OniCapture::OniCapture( const char *deviceUri, const Options &options )
+{
+	mDeviceRef = std::shared_ptr< openni::Device >( new openni::Device() );
+
+	openni::Status rc;
+	rc = mDeviceRef->open( deviceUri );
+	if ( rc != openni::STATUS_OK )
+	{
+		throw ExcFailedOpenDevice();
+	}
+
+	if ( options.mEnableDepth )
+	{
+		mDepthListener = std::shared_ptr< DepthListener >( new DepthListener( mDeviceRef ) );
+	}
+
+	if ( options.mEnableColor )
+	{
+		mColorListener = std::shared_ptr< ColorListener >( new ColorListener( mDeviceRef ) );
+	}
+}
+
+OniCapture::~OniCapture()
+{
+	stop();
+
+	if ( mDepthListener )
+	{
+		mDepthListener.reset();
+	}
+	if ( mColorListener )
+	{
+		mColorListener.reset();
+	}
+
+	if ( mDeviceRef )
+	{
+		mDeviceRef->close();
+	}
+}
+
+void OniCapture::start()
+{
+	if ( mDepthListener )
+	{
+		mDepthListener->start();
+	}
+	if ( mColorListener )
+	{
+		mColorListener->start();
+	}
+}
+
+void OniCapture::stop()
+{
+	if ( mDepthListener )
+	{
+		mDepthListener->stop();
+	}
+	if ( mColorListener )
+	{
+		mColorListener->stop();
 	}
 }
 
 bool OniCapture::checkNewDepthFrame()
 {
-	std::lock_guard< std::recursive_mutex > lock( mMutex );
-	bool oldValue = mNewDepthFrame;
-	mNewDepthFrame = false;
+	if ( !mDepthListener )
+		return false;
+
+	std::lock_guard< std::recursive_mutex > lock( mDepthListener->mMutex );
+	bool oldValue = mDepthListener->mNewDepthFrame;
+	mDepthListener->mNewDepthFrame = false;
+	return oldValue;
+}
+
+bool OniCapture::checkNewColorFrame()
+{
+	if ( !mColorListener )
+		return false;
+
+	std::lock_guard< std::recursive_mutex > lock( mColorListener->mMutex );
+	bool oldValue = mColorListener->mNewColorFrame;
+	mColorListener->mNewColorFrame = false;
 	return oldValue;
 }
 
 ci::ImageSourceRef OniCapture::getDepthImage()
 {
 	// register a reference to the active buffer
-	uint16_t *activeDepth = mDepthBuffers.refActiveBuffer();
+	uint16_t *activeDepth = mDepthListener->mDepthBuffers.refActiveBuffer();
 	return ci::ImageSourceRef( new ImageSourceOniDepth( activeDepth,
-				mDepthWidth, mDepthHeight, this ) );
+				mDepthListener->mDepthWidth, mDepthListener->mDepthHeight, mDepthListener ) );
+}
+
+ci::ImageSourceRef OniCapture::getColorImage()
+{
+	// register a reference to the active buffer
+	uint8_t *activeColor = mColorListener->mColorBuffers.refActiveBuffer();
+	return ci::ImageSourceRef( new ImageSourceOniColor( activeColor,
+				mColorListener->mColorWidth, mColorListener->mColorHeight, mColorListener ) );
 }
 
 ExcOpenNI::ExcOpenNI() throw()

@@ -81,7 +81,7 @@ class ExcOpenNI : public ci::Exception
 
 typedef std::shared_ptr< class OniCapture > OniCaptureRef;
 
-class OniCapture : public openni::VideoStream::NewFrameListener, public BufferObj
+class OniCapture
 {
 	public:
 		//! Options for specifying OniCapture parameters
@@ -100,36 +100,69 @@ class OniCapture : public openni::VideoStream::NewFrameListener, public BufferOb
 		~OniCapture();
 
 		std::shared_ptr< openni::Device > getDeviceRef() { return mDeviceRef; }
-		openni::VideoStream & getDepthStream() { return mDepthStream; }
+		openni::VideoStream & getDepthStream() { return mDepthListener->mDepthStream; }
+		openni::VideoStream & getColorStream() { return mColorListener->mColorStream; }
 
 		void start();
 		void stop();
 
 		bool checkNewDepthFrame();
+		bool checkNewColorFrame();
 		ci::ImageSourceRef getDepthImage();
+		ci::ImageSourceRef getColorImage();
 
 		class ExcFailedOpenDevice : public ExcOpenNI {};
 		class ExcFailedCreateDepthStream : public ExcOpenNI {};
 		class ExcFailedStartDepthStream : public ExcOpenNI {};
+		class ExcUnknownDepthPixelFormat : public ExcOpenNI {};
+		class ExcFailedCreateColorStream : public ExcOpenNI {};
+		class ExcFailedStartColorStream : public ExcOpenNI {};
+		class ExcUnknownColorPixelFormat : public ExcOpenNI {};
 		class ExcFailedReadStream : public ExcOpenNI {};
-		class ExcUnknownDepthFrameFormat : public ExcOpenNI {};
 
 	protected:
 		OniCapture( const char *deviceUri, const Options &options );
 
+		struct DepthListener : public openni::VideoStream::NewFrameListener, public BufferObj
+		{
+			DepthListener( std::shared_ptr< openni::Device > deviceRef );
+			~DepthListener();
+
+			void start();
+			void stop();
+			void onNewFrame( openni::VideoStream &videoStream );
+
+			openni::VideoStream mDepthStream;
+			BufferManager< uint16_t > mDepthBuffers;
+			int mDepthWidth, mDepthHeight;
+			bool mNewDepthFrame;
+
+			friend class ImageSourceOniDepth;
+		};
+
+		struct ColorListener : public openni::VideoStream::NewFrameListener, public BufferObj
+		{
+			ColorListener( std::shared_ptr< openni::Device > deviceRef );
+			~ColorListener();
+
+			void start();
+			void stop();
+			void onNewFrame( openni::VideoStream &videoStream );
+
+			openni::VideoStream mColorStream;
+			BufferManager< uint8_t > mColorBuffers;
+			int mColorWidth, mColorHeight;
+			bool mNewColorFrame;
+
+			friend class ImageSourceOniColor;
+		};
+
 		std::shared_ptr< openni::Device > mDeviceRef;
-
-		openni::VideoStream mDepthStream;
-		BufferManager< uint16_t > mDepthBuffers;
-		int mDepthWidth, mDepthHeight;
-		bool mNewDepthFrame;
-
-		openni::VideoStream mColorStreamRef;
-		BufferManager< uint8_t > mColorBuffers;
-
-		void onNewFrame( openni::VideoStream &videoStream );
+		std::shared_ptr< DepthListener > mDepthListener;
+		std::shared_ptr< ColorListener > mColorListener;
 
 		friend class ImageSourceOniDepth;
+		friend class ImageSourceOniColor;
 };
 
 } } // namespace mndl::oni
