@@ -115,7 +115,7 @@ void OniStickmanApp::setup()
 		quit();
 	}
 	mUserTrackerRef->addNewFrameListener( this );
-	mUserTrackerRef->setSkeletonSmoothingFactor( .5f );
+	mUserTrackerRef->setSkeletonSmoothingFactor( .7f );
 
 	mOniCaptureRef->start();
 

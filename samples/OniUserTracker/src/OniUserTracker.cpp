@@ -30,8 +30,7 @@ using namespace ci;
 using namespace ci::app;
 using namespace std;
 
-class OniUserTrackerApp : public AppBasic,
-	public nite::UserTracker::NewFrameListener
+class OniUserTrackerApp : public AppBasic
 {
 	public:
 		void prepareSettings( Settings *settings );
@@ -46,11 +45,6 @@ class OniUserTrackerApp : public AppBasic,
 		gl::Texture mDepthTexture;
 
 		std::shared_ptr< nite::UserTracker > mUserTrackerRef;
-		void onNewFrame( nite::UserTracker &userTracker );
-
-		recursive_mutex mMutex;
-		Vec3f mNearestCenterOfMass;
-		bool mUserVisible;
 };
 
 void OniUserTrackerApp::prepareSettings(Settings *settings)
@@ -80,8 +74,6 @@ void OniUserTrackerApp::setup()
 	depthMode.setPixelFormat( openni::PIXEL_FORMAT_DEPTH_1_MM );
 	mOniCaptureRef->getDepthStreamRef()->setVideoMode( depthMode );
 
-	mUserVisible = false;
-
 	/* FIXME: limitation of NiTE 2.2 on OS X, ini and data searchpath issue
 	 * copy NiTE.ini next to OniUserTrackerApp.app and set
 	 * [General]
@@ -96,7 +88,7 @@ void OniUserTrackerApp::setup()
 		console() << "Error creating UserTracker." << endl;
 		quit();
 	}
-	mUserTrackerRef->addNewFrameListener( this );
+	mUserTrackerRef->setSkeletonSmoothingFactor( .7f );
 
 	mOniCaptureRef->start();
 }
@@ -105,44 +97,10 @@ void OniUserTrackerApp::shutdown()
 {
 	if ( mUserTrackerRef )
 	{
-		mUserTrackerRef->removeNewFrameListener( this );
 		mUserTrackerRef->destroy();
 	}
 	nite::NiTE::shutdown();
 	openni::OpenNI::shutdown();
-}
-
-void OniUserTrackerApp::onNewFrame( nite::UserTracker &userTracker )
-{
-	nite::UserTrackerFrameRef frame;
-	if ( mUserTrackerRef->readFrame( &frame ) != nite::STATUS_OK )
-		return;
-
-	const nite::Array< nite::UserData > &users = frame.getUsers();
-	nite::UserId nearestId = -1;
-	float nearestDistance = std::numeric_limits< float >::max();
-	for ( int i = 0; i < users.getSize(); i++ )
-	{
-		if ( !users[ i ].isVisible() )
-			continue;
-
-		float d = users[ i ].getCenterOfMass().z;
-		if ( d < nearestDistance )
-		{
-			nearestDistance = d;
-			nearestId = i;
-		}
-	}
-	if ( nearestId >= 0 )
-	{
-		lock_guard< recursive_mutex > lock( mMutex );
-		mUserVisible = true;
-		mNearestCenterOfMass = mndl::oni::fromOni( users[ nearestId ].getCenterOfMass() );
-	}
-	else
-	{
-		mUserVisible = false;
-	}
 }
 
 void OniUserTrackerApp::update()
@@ -157,19 +115,69 @@ void OniUserTrackerApp::draw()
 	gl::setViewport( getWindowBounds() );
 	gl::setMatricesWindow( getWindowWidth(), getWindowHeight() );
 
+	gl::color( Color::white() );
 	if ( mDepthTexture )
 	{
 		gl::draw( mDepthTexture );
 	}
 
-	lock_guard< recursive_mutex > lock( mMutex );
-	if ( mUserVisible )
+	const nite::JointType jointIds[] = {
+		nite::JOINT_HEAD, nite::JOINT_NECK,
+		nite::JOINT_LEFT_SHOULDER, nite::JOINT_RIGHT_SHOULDER,
+		nite::JOINT_LEFT_ELBOW, nite::JOINT_RIGHT_ELBOW,
+		nite::JOINT_LEFT_HAND, nite::JOINT_RIGHT_HAND,
+		nite::JOINT_TORSO,
+		nite::JOINT_LEFT_HIP, nite::JOINT_RIGHT_HIP,
+		nite::JOINT_LEFT_KNEE, nite::JOINT_RIGHT_KNEE,
+		nite::JOINT_LEFT_FOOT, nite::JOINT_RIGHT_FOOT };
+
+	nite::UserTrackerFrameRef frame;
+	if ( mUserTrackerRef->readFrame( &frame ) == nite::STATUS_OK )
 	{
-		Vec2f scrPos;
-		mUserTrackerRef->convertJointCoordinatesToDepth( mNearestCenterOfMass.x,
-				mNearestCenterOfMass.y, mNearestCenterOfMass.z,
-				&scrPos.x, &scrPos.y );
-		gl::drawStringCentered( toString( mNearestCenterOfMass ), scrPos );
+		gl::enableAlphaBlending();
+		gl::color( ColorA( 1, 0, 0, .5 ) );
+
+		const nite::Array< nite::UserData > &users = frame.getUsers();
+		for ( int i = 0; i < users.getSize(); i++ )
+		{
+			if ( !users[ i ].isVisible() )
+			{
+				continue;
+			}
+			Vec3f centerOfMass = mndl::oni::fromOni( users[ i ].getCenterOfMass() );
+			Vec2f scrPos;
+			mUserTrackerRef->convertJointCoordinatesToDepth( centerOfMass.x,
+					centerOfMass.y, centerOfMass.z,
+					&scrPos.x, &scrPos.y );
+			gl::drawStringCentered( toString( centerOfMass ), scrPos );
+
+			if ( users[ i ].isNew() )
+			{
+				mUserTrackerRef->startSkeletonTracking( users[ i ].getId() );
+			}
+			nite::Skeleton skeleton = users[ i ].getSkeleton();
+			if ( skeleton.getState() != nite::SKELETON_TRACKED )
+			{
+				continue;
+			}
+
+			for ( int j = 0; j < sizeof( jointIds ) / sizeof( jointIds[ 0 ] );
+					++j )
+			{
+				const nite::SkeletonJoint &joint = skeleton.getJoint( jointIds[ j ] );
+				Vec3f pos = mndl::oni::fromOni( joint.getPosition() );
+				float posConf = joint.getPositionConfidence();
+
+				if ( posConf < 0.5f )
+					continue;
+
+				Vec2f pos2d;
+				mUserTrackerRef->convertJointCoordinatesToDepth( pos.x, pos.y, pos.z,
+						&pos2d.x, &pos2d.y );
+				gl::drawSolidCircle( pos2d, 7 );
+			}
+		}
+		gl::disableAlphaBlending();
 	}
 }
 
