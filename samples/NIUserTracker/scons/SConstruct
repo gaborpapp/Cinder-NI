@@ -1,9 +1,0 @@
-env = Environment()
-
-env['APP_TARGET'] = 'NIUserTrackerApp'
-env['APP_SOURCES'] = ['NIUserTrackerApp.cpp']
-
-# Cinder-NI
-env = SConscript('../../../scons/SConscript', exports = 'env')
-
-SConscript('../../../../../scons/SConscript', exports = 'env')
