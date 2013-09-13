@@ -71,12 +71,14 @@ void OniUserTrackerApp::setup()
 		quit();
 	}
 
-	mOniCaptureRef = mndl::oni::OniCapture::create( openni::ANY_DEVICE );
+	mndl::oni::OniCapture::Options options;
+	options.mEnableColor = false;
+	mOniCaptureRef = mndl::oni::OniCapture::create( openni::ANY_DEVICE, options );
 	openni::VideoMode depthMode;
 	depthMode.setResolution( 640, 480 );
 	depthMode.setFps( 30 );
 	depthMode.setPixelFormat( openni::PIXEL_FORMAT_DEPTH_1_MM );
-	mOniCaptureRef->getDepthStream().setVideoMode( depthMode );
+	mOniCaptureRef->getDepthStreamRef()->setVideoMode( depthMode );
 
 	mUserVisible = false;
 

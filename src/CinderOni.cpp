@@ -101,7 +101,8 @@ class ImageSourceOniColor : public ci::ImageSource
 OniCapture::DepthListener::DepthListener( std::shared_ptr< openni::Device > deviceRef ) :
 	mNewDepthFrame( false )
 {
-	if ( mDepthStream.create( *deviceRef.get(), openni::SENSOR_DEPTH ) )
+	mDepthStreamRef = std::shared_ptr< openni::VideoStream >( new openni::VideoStream() );
+	if ( mDepthStreamRef->create( *deviceRef.get(), openni::SENSOR_DEPTH ) )
 	{
 		throw ExcFailedCreateDepthStream();
 	}
@@ -109,42 +110,42 @@ OniCapture::DepthListener::DepthListener( std::shared_ptr< openni::Device > devi
 
 OniCapture::DepthListener::~DepthListener()
 {
-	if ( mDepthStream.isValid() )
+	if ( mDepthStreamRef->isValid() )
 	{
-		mDepthStream.destroy();
+		mDepthStreamRef->destroy();
 	}
 }
 
 void OniCapture::DepthListener::start()
 {
-	if ( mDepthStream.isValid() )
+	if ( mDepthStreamRef->isValid() )
 	{
-		if ( mDepthStream.start() != openni::STATUS_OK )
+		if ( mDepthStreamRef->start() != openni::STATUS_OK )
 		{
 			throw ExcFailedStartDepthStream();
 		}
 
-		openni::PixelFormat pf = mDepthStream.getVideoMode().getPixelFormat();
+		openni::PixelFormat pf = mDepthStreamRef->getVideoMode().getPixelFormat();
 		if ( pf != openni::PIXEL_FORMAT_DEPTH_1_MM &&
 			 pf != openni::PIXEL_FORMAT_DEPTH_100_UM )
 		{
 			throw ExcUnknownDepthPixelFormat();
 		}
 
-		mDepthWidth = mDepthStream.getVideoMode().getResolutionX();
-		mDepthHeight = mDepthStream.getVideoMode().getResolutionY();
+		mDepthWidth = mDepthStreamRef->getVideoMode().getResolutionX();
+		mDepthHeight = mDepthStreamRef->getVideoMode().getResolutionY();
 		mDepthBuffers = BufferManager< uint16_t >( mDepthWidth * mDepthHeight, this );
 
-		mDepthStream.addNewFrameListener( this );
+		mDepthStreamRef->addNewFrameListener( this );
 	}
 }
 
 void OniCapture::DepthListener::stop()
 {
-	if ( mDepthStream.isValid() )
+	if ( mDepthStreamRef->isValid() )
 	{
-		mDepthStream.stop();
-		mDepthStream.removeNewFrameListener( this );
+		mDepthStreamRef->stop();
+		mDepthStreamRef->removeNewFrameListener( this );
 	}
 }
 
@@ -176,7 +177,8 @@ void OniCapture::DepthListener::onNewFrame( openni::VideoStream &videoStream )
 OniCapture::ColorListener::ColorListener( std::shared_ptr< openni::Device > deviceRef ) :
 	mNewColorFrame( false )
 {
-	if ( mColorStream.create( *deviceRef.get(), openni::SENSOR_COLOR ) )
+	mColorStreamRef = std::shared_ptr< openni::VideoStream >( new openni::VideoStream() );
+	if ( mColorStreamRef->create( *deviceRef.get(), openni::SENSOR_COLOR ) )
 	{
 		throw ExcFailedCreateColorStream();
 	}
@@ -184,41 +186,41 @@ OniCapture::ColorListener::ColorListener( std::shared_ptr< openni::Device > devi
 
 OniCapture::ColorListener::~ColorListener()
 {
-	if ( mColorStream.isValid() )
+	if ( mColorStreamRef->isValid() )
 	{
-		mColorStream.destroy();
+		mColorStreamRef->destroy();
 	}
 }
 
 void OniCapture::ColorListener::start()
 {
-	if ( mColorStream.isValid() )
+	if ( mColorStreamRef->isValid() )
 	{
-		if ( mColorStream.start() != openni::STATUS_OK )
+		if ( mColorStreamRef->start() != openni::STATUS_OK )
 		{
 			throw ExcFailedStartColorStream();
 		}
 
-		openni::PixelFormat pf = mColorStream.getVideoMode().getPixelFormat();
+		openni::PixelFormat pf = mColorStreamRef->getVideoMode().getPixelFormat();
 		if ( pf != openni::PIXEL_FORMAT_RGB888 )
 		{
 			throw ExcUnknownColorPixelFormat();
 		}
 
-		mColorWidth = mColorStream.getVideoMode().getResolutionX();
-		mColorHeight = mColorStream.getVideoMode().getResolutionY();
+		mColorWidth = mColorStreamRef->getVideoMode().getResolutionX();
+		mColorHeight = mColorStreamRef->getVideoMode().getResolutionY();
 		mColorBuffers = BufferManager< uint8_t >( mColorWidth * mColorHeight * 3, this );
 
-		mColorStream.addNewFrameListener( this );
+		mColorStreamRef->addNewFrameListener( this );
 	}
 }
 
 void OniCapture::ColorListener::stop()
 {
-	if ( mColorStream.isValid() )
+	if ( mColorStreamRef->isValid() )
 	{
-		mColorStream.stop();
-		mColorStream.removeNewFrameListener( this );
+		mColorStreamRef->stop();
+		mColorStreamRef->removeNewFrameListener( this );
 	}
 }
 

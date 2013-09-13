@@ -2,6 +2,7 @@ env = Environment()
 
 env['APP_TARGET'] = 'OniBasicApp'
 env['APP_SOURCES'] = ['OniBasicApp.cpp']
+env['DEBUG'] = 1
 
 # CinderOni
 env = SConscript('../../../scons/SConscript', exports = 'env')

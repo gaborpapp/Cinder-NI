@@ -76,15 +76,15 @@ void OniBasicApp::setup()
 	depthMode.setResolution( 640, 480 );
 	depthMode.setFps( 30 );
 	depthMode.setPixelFormat( openni::PIXEL_FORMAT_DEPTH_1_MM );
-	mOniCaptureRef->getDepthStream().setVideoMode( depthMode );
+	mOniCaptureRef->getDepthStreamRef()->setVideoMode( depthMode );
 
-	if ( mOniCaptureRef->getColorStream().isValid() )
+	if ( mOniCaptureRef->getColorStreamRef() )
 	{
 		openni::VideoMode colorMode;
 		colorMode.setResolution( 640, 480 );
 		colorMode.setFps( 30 );
 		colorMode.setPixelFormat( openni::PIXEL_FORMAT_RGB888 );
-		mOniCaptureRef->getColorStream().setVideoMode( colorMode );
+		mOniCaptureRef->getColorStreamRef()->setVideoMode( colorMode );
 	}
 
 	mOniCaptureRef->start();
@@ -112,7 +112,7 @@ void OniBasicApp::draw()
 
 	if ( mDepthTexture )
 		gl::draw( mDepthTexture );
-	if ( !mOniCaptureRef->getColorStream().isValid() )
+	if ( !mOniCaptureRef->getColorStreamRef() )
 		gl::drawStringCentered( "No color stream available!", Vec2i( 960, 240 ) );
 	else if ( mColorTexture )
 		gl::draw( mColorTexture, Vec2i( 640, 0 ) );

@@ -100,8 +100,16 @@ class OniCapture
 		~OniCapture();
 
 		std::shared_ptr< openni::Device > getDeviceRef() { return mDeviceRef; }
-		openni::VideoStream & getDepthStream() { return mDepthListener->mDepthStream; }
-		openni::VideoStream & getColorStream() { return mColorListener->mColorStream; }
+		std::shared_ptr< openni::VideoStream > getDepthStreamRef()
+		{
+			if ( mDepthListener ) return mDepthListener->mDepthStreamRef;
+			else return std::shared_ptr< openni::VideoStream >();
+		}
+		std::shared_ptr< openni::VideoStream > getColorStreamRef()
+		{
+			if ( mColorListener ) return mColorListener->mColorStreamRef;
+			else return std::shared_ptr< openni::VideoStream >();
+		}
 
 		void start();
 		void stop();
@@ -132,7 +140,7 @@ class OniCapture
 			void stop();
 			void onNewFrame( openni::VideoStream &videoStream );
 
-			openni::VideoStream mDepthStream;
+			std::shared_ptr< openni::VideoStream > mDepthStreamRef;
 			BufferManager< uint16_t > mDepthBuffers;
 			int mDepthWidth, mDepthHeight;
 			bool mNewDepthFrame;
@@ -149,7 +157,7 @@ class OniCapture
 			void stop();
 			void onNewFrame( openni::VideoStream &videoStream );
 
-			openni::VideoStream mColorStream;
+			std::shared_ptr< openni::VideoStream > mColorStreamRef;
 			BufferManager< uint8_t > mColorBuffers;
 			int mColorWidth, mColorHeight;
 			bool mNewColorFrame;
