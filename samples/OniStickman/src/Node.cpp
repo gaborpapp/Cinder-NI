@@ -41,7 +41,6 @@ void Node::createMatrix()
     mLocalTransformMatrix.setTranslate( mPosition );
 }
 
-
 void Node::draw()
 {
     gl::pushMatrices();
