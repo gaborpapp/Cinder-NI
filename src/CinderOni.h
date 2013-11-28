@@ -33,6 +33,7 @@
 #include "cinder/Cinder.h"
 #include "cinder/Exception.h"
 #include "cinder/ImageIo.h"
+#include "cinder/Plane.h"
 #include "cinder/Quaternion.h"
 #include "cinder/Thread.h"
 #include "cinder/Vector.h"
@@ -62,6 +63,17 @@ inline ci::Quatf fromOni( const nite::Quaternion &q )
 inline nite::Quaternion toOni( const ci::Quatf &q )
 {
 	return nite::Quaternion( q.w, q.v.x, q.v.y, q.v.z );
+}
+
+inline ci::Planef fromOni( const nite::Plane &p )
+{
+	return ci::Planef( ci::Vec3f( p.point.x, p.point.y, p.point.z ),
+					   ci::Vec3f( p.normal.x, p.normal.y, p.normal.z ) );
+}
+
+inline nite::Plane toOni( const ci::Planef &p )
+{
+	return nite::Plane( toOni( p.getPoint() ), toOni( p.getNormal() ) );
 }
 
 //! Parent class for all OpenNI exceptions
