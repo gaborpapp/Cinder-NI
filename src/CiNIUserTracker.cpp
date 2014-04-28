@@ -352,7 +352,7 @@ class ImageSourceOpenNIUserMask : public ImageSource {
 		uint8_t							*mData;
 };
 
-ImageSourceRef UserTracker::getUserMask( XnUserID userId )
+ImageSourceRef UserTracker::getUserMask( XnUserID userId /* = 0 */, bool fillWithUserId /* = false */ )
 {
 	mObj->mUserBuffers.derefActiveBuffer(); // finished with current active buffer
 	uint8_t *destPixels = mObj->mUserBuffers.getNewBuffer();  // request a new buffer
@@ -364,26 +364,51 @@ ImageSourceRef UserTracker::getUserMask( XnUserID userId )
 	{
 		const uint16_t *userPixels = reinterpret_cast< const uint16_t * >( sceneMD.Data() );
 
-		if ( userId == 0 )
+		if ( fillWithUserId )
 		{
-			// mask for all users
-			for ( size_t i = 0 ; i < mObj->mDepthWidth * mObj->mDepthHeight; i++ )
+			if ( userId == 0 )
 			{
-				if ( userPixels[i] != 0 )
-					destPixels[i] = 255;
-				else
-					destPixels[i] = 0;
+				// mask for all users
+				for ( size_t i = 0 ; i < mObj->mDepthWidth * mObj->mDepthHeight; i++ )
+				{
+					destPixels[i] = userPixels[i] & 255;
+				}
+			}
+			else
+			{
+				// mask for specified user id
+				for ( size_t i = 0 ; i < mObj->mDepthWidth * mObj->mDepthHeight; i++ )
+				{
+					if ( userPixels[i] == userId )
+						destPixels[i] = userPixels[i] & 255;
+					else
+						destPixels[i] = 0;
+				}
 			}
 		}
 		else
 		{
-			// mask for specified user id
-			for ( size_t i = 0 ; i < mObj->mDepthWidth * mObj->mDepthHeight; i++ )
+			if ( userId == 0 )
 			{
-				if ( userPixels[i] == userId )
-					destPixels[i] = 255;
-				else
-					destPixels[i] = 0;
+				// mask for all users
+				for ( size_t i = 0 ; i < mObj->mDepthWidth * mObj->mDepthHeight; i++ )
+				{
+					if ( userPixels[i] != 0 )
+						destPixels[i] = 255;
+					else
+						destPixels[i] = 0;
+				}
+			}
+			else
+			{
+				// mask for specified user id
+				for ( size_t i = 0 ; i < mObj->mDepthWidth * mObj->mDepthHeight; i++ )
+				{
+					if ( userPixels[i] == userId )
+						destPixels[i] = 255;
+					else
+						destPixels[i] = 0;
+				}
 			}
 		}
 	}

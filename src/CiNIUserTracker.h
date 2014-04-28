@@ -57,8 +57,8 @@ class UserTracker
 
 		void addListener( Listener *listener );
 
-		//! Returns mask for the given \a userId. Or a mask for all users if \a userId is 0 (the default).
-		ci::ImageSourceRef getUserMask( XnUserID userId = 0 );
+		//! Returns mask for the given \a userId. Or a mask for all users if \a userId is 0 (the default). If \a fillWithUserId is set the user mask is filled with the userId instead of white color.
+		ci::ImageSourceRef getUserMask( XnUserID userId = 0, bool fillWithUserId = false );
 
 	protected:
 		struct Obj : BufferObj {
