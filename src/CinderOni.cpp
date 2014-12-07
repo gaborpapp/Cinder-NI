@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2012-2013, Gabor Papp, All rights reserved.
+ Copyright (c) 2012-2014, Gabor Papp, All rights reserved.
 
  This code is intended for use with the Cinder C++ library:
  http://libcinder.org
@@ -38,64 +38,64 @@ namespace mndl { namespace oni {
 
 class ImageSourceOniDepth : public ci::ImageSource
 {
-	public:
-		ImageSourceOniDepth( uint16_t *buffer, int w, int h, std::shared_ptr< OniCapture::DepthListener > ownerObj )
-			: ImageSource(), mOwnerObj( ownerObj ), mData( buffer )
-		{
-			setSize( w, h );
-			setColorModel( ci::ImageIo::CM_GRAY );
-			setChannelOrder( ci::ImageIo::Y );
-			setDataType( ci::ImageIo::UINT16 );
-		}
+ public:
+	ImageSourceOniDepth( uint16_t *buffer, int w, int h, std::shared_ptr< OniCapture::DepthListener > ownerObj )
+		: ImageSource(), mOwnerObj( ownerObj ), mData( buffer )
+	{
+		setSize( w, h );
+		setColorModel( ci::ImageIo::CM_GRAY );
+		setChannelOrder( ci::ImageIo::Y );
+		setDataType( ci::ImageIo::UINT16 );
+	}
 
-		~ImageSourceOniDepth()
-		{
-			// let the owner know we are done with the buffer
-			mOwnerObj->mDepthBuffers.derefBuffer( mData );
-		}
+	~ImageSourceOniDepth()
+	{
+		// let the owner know we are done with the buffer
+		mOwnerObj->mDepthBuffers.derefBuffer( mData );
+	}
 
-		virtual void load( ci::ImageTargetRef target )
-		{
-			ci::ImageSource::RowFunc func = setupRowFunc( target );
+	virtual void load( ci::ImageTargetRef target )
+	{
+		ci::ImageSource::RowFunc func = setupRowFunc( target );
 
-			for( int32_t row = 0; row < mHeight; ++row )
-				((*this).*func)( target, row, mData + row * mWidth );
-		}
+		for ( int32_t row = 0; row < mHeight; ++row )
+			((*this).*func)( target, row, mData + row * mWidth );
+	}
 
-	protected:
-		std::shared_ptr< OniCapture::DepthListener > mOwnerObj;
-		uint16_t *mData;
+ protected:
+	std::shared_ptr< OniCapture::DepthListener > mOwnerObj;
+	uint16_t *mData;
 };
 
 class ImageSourceOniColor : public ci::ImageSource
 {
-	public:
-		ImageSourceOniColor( uint8_t *buffer, int w, int h, std::shared_ptr< OniCapture::ColorListener > ownerObj )
-			: ImageSource(), mOwnerObj( ownerObj ), mData( buffer )
-		{
-			setSize( w, h );
-			setColorModel( ci::ImageIo::CM_RGB );
-			setChannelOrder( ci::ImageIo::RGB );
-			setDataType( ci::ImageIo::UINT8 );
-		}
+ public:
+	ImageSourceOniColor( uint8_t *buffer, int w, int h, std::shared_ptr< OniCapture::ColorListener > ownerObj )
+		: ImageSource(), mOwnerObj( ownerObj ), mData( buffer )
+	{
+		setSize( w, h );
+		setColorModel( ci::ImageIo::CM_RGB );
+		setChannelOrder( ci::ImageIo::RGB );
+		setDataType( ci::ImageIo::UINT8 );
+	}
 
-		~ImageSourceOniColor()
-		{
-			// let the owner know we are done with the buffer
-			mOwnerObj->mColorBuffers.derefBuffer( mData );
-		}
+	~ImageSourceOniColor()
+	{
+		// let the owner know we are done with the buffer
+		mOwnerObj->mColorBuffers.derefBuffer( mData );
+	}
 
-		virtual void load( ci::ImageTargetRef target )
-		{
-			ci::ImageSource::RowFunc func = setupRowFunc( target );
+	virtual void load( ci::ImageTargetRef target )
+	{
+		ci::ImageSource::RowFunc func = setupRowFunc( target );
 
-			for( int32_t row = 0; row < mHeight; ++row )
-				((*this).*func)( target, row, mData + row * mWidth * 3 );
-		}
+		for ( int32_t row = 0; row < mHeight; ++row )
+			((*this).*func)( target, row, mData + row * mWidth * 3 );
+	}
 
-	protected:
-		std::shared_ptr< OniCapture::ColorListener > mOwnerObj;
-		uint8_t *mData;
+ protected:
+	std::shared_ptr< OniCapture::ColorListener > mOwnerObj;
+	uint8_t *mData;
 };
 
 OniCapture::DepthListener::DepthListener( std::shared_ptr< openni::Device > deviceRef ) :
@@ -338,8 +338,10 @@ void OniCapture::stop()
 
 bool OniCapture::checkNewDepthFrame()
 {
-	if ( !mDepthListener )
+	if ( ! mDepthListener )
+	{
 		return false;
+	}
 
 	std::lock_guard< std::recursive_mutex > lock( mDepthListener->mMutex );
 	bool oldValue = mDepthListener->mNewDepthFrame;
@@ -349,8 +351,10 @@ bool OniCapture::checkNewDepthFrame()
 
 bool OniCapture::checkNewColorFrame()
 {
-	if ( !mColorListener )
+	if ( ! mColorListener )
+	{
 		return false;
+	}
 
 	std::lock_guard< std::recursive_mutex > lock( mColorListener->mMutex );
 	bool oldValue = mColorListener->mNewColorFrame;
@@ -380,4 +384,3 @@ ExcOpenNI::ExcOpenNI() throw()
 }
 
 } } // namespace mndl::oni
-

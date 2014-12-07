@@ -38,41 +38,41 @@ using namespace std;
 
 class Bone : public Node
 {
-	public:
-		quat mBindPoseOrientation;
+ public:
+	quat mBindPoseOrientation;
 
-		void customDraw()
-		{
-			gl::color( Color::white() );
-			gl::drawCube( vec3( 0, -20, 0 ), vec3( 5, 30, 5 ) );
-		}
+	void customDraw()
+	{
+		gl::color( Color::white() );
+		gl::drawCube( vec3( 0, -20, 0 ), vec3( 5, 30, 5 ) );
+	}
 };
 
 class OniStickmanApp : public AppBasic,
 	public nite::UserTracker::NewFrameListener
 {
-	public:
-		void prepareSettings( Settings *settings );
-		void setup();
-		void shutdown();
+ public:
+	void prepareSettings( Settings *settings );
+	void setup();
+	void shutdown();
 
-		void update();
-		void draw();
+	void update();
+	void draw();
 
-	private:
-		mndl::oni::OniCaptureRef mOniCaptureRef;
-		gl::TextureRef mDepthTexture;
+ private:
+	mndl::oni::OniCaptureRef mOniCaptureRef;
+	gl::TextureRef mDepthTexture;
 
-		std::shared_ptr< nite::UserTracker > mUserTrackerRef;
-		void onNewFrame( nite::UserTracker &userTracker );
-		recursive_mutex mMutex;
+	std::shared_ptr< nite::UserTracker > mUserTrackerRef;
+	void onNewFrame( nite::UserTracker &userTracker );
+	recursive_mutex mMutex;
 
-		static const int sNumBones = 10;
-		Bone mBones[ sNumBones ];
+	static const int sNumBones = 10;
+	Bone mBones[ sNumBones ];
 
-		void transformNode( const nite::Skeleton &skeleton, int nodeNum, nite::JointType jointType );
+	void transformNode( const nite::Skeleton &skeleton, int nodeNum, nite::JointType jointType );
 
-		CameraPersp mCam;
+	CameraPersp mCam;
 };
 
 void OniStickmanApp::prepareSettings(Settings *settings)
@@ -258,4 +258,3 @@ void OniStickmanApp::draw()
 }
 
 CINDER_APP_BASIC( OniStickmanApp, RendererGl )
-

@@ -29,19 +29,19 @@ using namespace std;
 
 class OniBasicApp : public AppBasic
 {
-	public:
-		void prepareSettings( Settings *settings );
-		void setup();
-		void shutdown();
+ public:
+	void prepareSettings( Settings *settings );
+	void setup();
+	void shutdown();
 
-		void update();
-		void draw();
+	void update();
+	void draw();
 
-		void mouseUp( MouseEvent event );
+	void mouseUp( MouseEvent event );
 
-	private:
-		mndl::oni::OniCaptureRef mOniCaptureRef;
-		gl::TextureRef mColorTexture, mDepthTexture;
+ private:
+	mndl::oni::OniCaptureRef mOniCaptureRef;
+	gl::TextureRef mColorTexture, mDepthTexture;
 };
 
 void OniBasicApp::prepareSettings(Settings *settings)
@@ -61,13 +61,13 @@ void OniBasicApp::setup()
 	{
 		mOniCaptureRef = mndl::oni::OniCapture::create( openni::ANY_DEVICE );
 	}
-	catch( const mndl::oni::OniCapture::ExcFailedCreateColorStream &exc )
+	catch ( const mndl::oni::OniCapture::ExcFailedCreateColorStream &exc )
 	{
 		mndl::oni::OniCapture::Options options;
 		options.mEnableColor = false;
 		mOniCaptureRef = mndl::oni::OniCapture::create( openni::ANY_DEVICE, options );
 	}
-	catch( const mndl::oni::ExcOpenNI &exc )
+	catch ( const mndl::oni::ExcOpenNI &exc )
 	{
 		console() << exc.what() << endl;
 		quit();
@@ -100,9 +100,13 @@ void OniBasicApp::shutdown()
 void OniBasicApp::update()
 {
 	if ( mOniCaptureRef->checkNewColorFrame() )
+	{
 		mColorTexture = gl::Texture::create( mOniCaptureRef->getColorImage() );
+	}
 	if ( mOniCaptureRef->checkNewDepthFrame() )
+	{
 		mDepthTexture = gl::Texture::create( mOniCaptureRef->getDepthImage() );
+	}
 }
 
 void OniBasicApp::draw()
@@ -122,10 +126,9 @@ void OniBasicApp::draw()
 void OniBasicApp::mouseUp( MouseEvent event )
 {
 	/*
-    // toggle infrared video
-    mNI.setVideoInfrared( !mNI.isVideoInfrared() );
+	// toggle infrared video
+	mNI.setVideoInfrared( ! mNI.isVideoInfrared() );
 	*/
 }
 
 CINDER_APP_BASIC( OniBasicApp, RendererGl )
-

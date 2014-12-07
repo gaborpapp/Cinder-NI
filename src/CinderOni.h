@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2012-2013, Gabor Papp, All rights reserved.
+ Copyright (c) 2012-2014, Gabor Papp, All rights reserved.
 
  This code is intended for use with the Cinder C++ library:
  http://libcinder.org
@@ -79,111 +79,110 @@ inline nite::Plane toOni( const ci::Planef &p )
 //! Parent class for all OpenNI exceptions
 class ExcOpenNI : public ci::Exception
 {
-	public:
-		ExcOpenNI() throw();
+ public:
+	ExcOpenNI() throw();
 
-		virtual const char* what() const throw()
-		{
-			return mMessage;
-		}
+	virtual const char* what() const throw()
+	{
+		return mMessage;
+	}
 
-	protected:
-		char mMessage[ 1024 ];
+ protected:
+	char mMessage[ 1024 ];
 };
 
 typedef std::shared_ptr< class OniCapture > OniCaptureRef;
 
 class OniCapture
 {
-	public:
-		//! Options for specifying OniCapture parameters
-		struct Options
-		{
-			Options() : mEnableDepth( true ), mEnableColor( true ), mEnableIR( false ) {}
+ public:
+	//! Options for specifying OniCapture parameters
+	struct Options
+	{
+		Options() : mEnableDepth( true ), mEnableColor( true ), mEnableIR( false ) {}
 
-			bool mEnableDepth;
-			bool mEnableColor;
-			bool mEnableIR;
-		};
+		bool mEnableDepth;
+		bool mEnableColor;
+		bool mEnableIR;
+	};
 
-		static OniCaptureRef create( const char *deviceUri, const Options &options = Options() )
-		{ return OniCaptureRef( new OniCapture( deviceUri, options ) ); }
+	static OniCaptureRef create( const char *deviceUri, const Options &options = Options() )
+	{ return OniCaptureRef( new OniCapture( deviceUri, options ) ); }
 
-		~OniCapture();
+	~OniCapture();
 
-		std::shared_ptr< openni::Device > getDeviceRef() { return mDeviceRef; }
-		std::shared_ptr< openni::VideoStream > getDepthStreamRef()
-		{
-			if ( mDepthListener ) return mDepthListener->mDepthStreamRef;
-			else return std::shared_ptr< openni::VideoStream >();
-		}
-		std::shared_ptr< openni::VideoStream > getColorStreamRef()
-		{
-			if ( mColorListener ) return mColorListener->mColorStreamRef;
-			else return std::shared_ptr< openni::VideoStream >();
-		}
+	std::shared_ptr< openni::Device > getDeviceRef() { return mDeviceRef; }
+	std::shared_ptr< openni::VideoStream > getDepthStreamRef()
+	{
+		if ( mDepthListener ) return mDepthListener->mDepthStreamRef;
+		else return std::shared_ptr< openni::VideoStream >();
+	}
+	std::shared_ptr< openni::VideoStream > getColorStreamRef()
+	{
+		if ( mColorListener ) return mColorListener->mColorStreamRef;
+		else return std::shared_ptr< openni::VideoStream >();
+	}
+
+	void start();
+	void stop();
+
+	bool checkNewDepthFrame();
+	bool checkNewColorFrame();
+	ci::ImageSourceRef getDepthImage();
+	ci::ImageSourceRef getColorImage();
+
+	class ExcFailedOpenDevice : public ExcOpenNI {};
+	class ExcFailedCreateDepthStream : public ExcOpenNI {};
+	class ExcFailedStartDepthStream : public ExcOpenNI {};
+	class ExcUnknownDepthPixelFormat : public ExcOpenNI {};
+	class ExcFailedCreateColorStream : public ExcOpenNI {};
+	class ExcFailedStartColorStream : public ExcOpenNI {};
+	class ExcUnknownColorPixelFormat : public ExcOpenNI {};
+	class ExcFailedReadStream : public ExcOpenNI {};
+
+ protected:
+	OniCapture( const char *deviceUri, const Options &options );
+
+	struct DepthListener : public openni::VideoStream::NewFrameListener, public BufferObj
+	{
+		DepthListener( std::shared_ptr< openni::Device > deviceRef );
+		~DepthListener();
 
 		void start();
 		void stop();
+		void onNewFrame( openni::VideoStream &videoStream );
 
-		bool checkNewDepthFrame();
-		bool checkNewColorFrame();
-		ci::ImageSourceRef getDepthImage();
-		ci::ImageSourceRef getColorImage();
-
-		class ExcFailedOpenDevice : public ExcOpenNI {};
-		class ExcFailedCreateDepthStream : public ExcOpenNI {};
-		class ExcFailedStartDepthStream : public ExcOpenNI {};
-		class ExcUnknownDepthPixelFormat : public ExcOpenNI {};
-		class ExcFailedCreateColorStream : public ExcOpenNI {};
-		class ExcFailedStartColorStream : public ExcOpenNI {};
-		class ExcUnknownColorPixelFormat : public ExcOpenNI {};
-		class ExcFailedReadStream : public ExcOpenNI {};
-
-	protected:
-		OniCapture( const char *deviceUri, const Options &options );
-
-		struct DepthListener : public openni::VideoStream::NewFrameListener, public BufferObj
-		{
-			DepthListener( std::shared_ptr< openni::Device > deviceRef );
-			~DepthListener();
-
-			void start();
-			void stop();
-			void onNewFrame( openni::VideoStream &videoStream );
-
-			std::shared_ptr< openni::VideoStream > mDepthStreamRef;
-			BufferManager< uint16_t > mDepthBuffers;
-			int mDepthWidth, mDepthHeight;
-			bool mNewDepthFrame;
-
-			friend class ImageSourceOniDepth;
-		};
-
-		struct ColorListener : public openni::VideoStream::NewFrameListener, public BufferObj
-		{
-			ColorListener( std::shared_ptr< openni::Device > deviceRef );
-			~ColorListener();
-
-			void start();
-			void stop();
-			void onNewFrame( openni::VideoStream &videoStream );
-
-			std::shared_ptr< openni::VideoStream > mColorStreamRef;
-			BufferManager< uint8_t > mColorBuffers;
-			int mColorWidth, mColorHeight;
-			bool mNewColorFrame;
-
-			friend class ImageSourceOniColor;
-		};
-
-		std::shared_ptr< openni::Device > mDeviceRef;
-		std::shared_ptr< DepthListener > mDepthListener;
-		std::shared_ptr< ColorListener > mColorListener;
+		std::shared_ptr< openni::VideoStream > mDepthStreamRef;
+		BufferManager< uint16_t > mDepthBuffers;
+		int mDepthWidth, mDepthHeight;
+		bool mNewDepthFrame;
 
 		friend class ImageSourceOniDepth;
+	};
+
+	struct ColorListener : public openni::VideoStream::NewFrameListener, public BufferObj
+	{
+		ColorListener( std::shared_ptr< openni::Device > deviceRef );
+		~ColorListener();
+
+		void start();
+		void stop();
+		void onNewFrame( openni::VideoStream &videoStream );
+
+		std::shared_ptr< openni::VideoStream > mColorStreamRef;
+		BufferManager< uint8_t > mColorBuffers;
+		int mColorWidth, mColorHeight;
+		bool mNewColorFrame;
+
 		friend class ImageSourceOniColor;
+	};
+
+	std::shared_ptr< openni::Device > mDeviceRef;
+	std::shared_ptr< DepthListener > mDepthListener;
+	std::shared_ptr< ColorListener > mColorListener;
+
+	friend class ImageSourceOniDepth;
+	friend class ImageSourceOniColor;
 };
 
 } } // namespace mndl::oni
-

@@ -6,27 +6,27 @@
 
 class Node
 {
-	public:
-		Node();
-		virtual ~Node() {}
+ public:
+	Node();
+	virtual ~Node() {}
 
-		void setPosition( const ci::vec3 &p );
-		void setOrientation( const ci::quat &q );
-		void setScale( float s );
-		void setScale( const ci::vec3 &s );
+	void setPosition( const ci::vec3 &p );
+	void setOrientation( const ci::quat &q );
+	void setScale( float s );
+	void setScale( const ci::vec3 &s );
 
-		void draw();
-		virtual void customDraw() {}
+	void draw();
+	virtual void customDraw() {}
 
-		ci::mat4 getGlobalTransformMatrix() const;
+	ci::mat4 getGlobalTransformMatrix() const;
 
-	private:
-		void createMatrix();
+ private:
+	void createMatrix();
 
-		ci::vec3 mPosition;
-		ci::quat mOrientation;
-		ci::vec3 mScale;
+	ci::vec3 mPosition;
+	ci::quat mOrientation;
+	ci::vec3 mScale;
 
-		ci::mat4 mLocalTransformMatrix;
+	ci::mat4 mLocalTransformMatrix;
 };
 

@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2012, Gabor Papp, All rights reserved.
+ Copyright (c) 2012-2014, Gabor Papp, All rights reserved.
 
  This code is intended for use with the Cinder C++ library:
  http://libcinder.org
@@ -39,8 +39,8 @@ namespace mndl { namespace oni {
 
 struct BufferObj
 {
-	public:
-		std::recursive_mutex mMutex;
+ public:
+	std::recursive_mutex mMutex;
 };
 
 template<typename T>
@@ -80,11 +80,11 @@ T* BufferManager<T>::getNewBuffer()
 	std::lock_guard<std::recursive_mutex> lock( mBufferObj->mMutex );
 
 	typename std::map<T*,size_t>::iterator bufIt;
-	for( bufIt = mBuffers.begin(); bufIt != mBuffers.end(); ++bufIt ) {
+	for ( bufIt = mBuffers.begin(); bufIt != mBuffers.end(); ++bufIt ) {
 		if( bufIt->second == 0 ) // 0 means free buffer
 			break;
 	}
-	if( bufIt != mBuffers.end() ) {
+	if ( bufIt != mBuffers.end() ) {
 		bufIt->second = 1;
 		return bufIt->first;
 	}
@@ -131,18 +131,17 @@ void BufferManager<T>::derefBuffer( T *buffer )
 template<typename T>
 class DataDeleter
 {
-	public:
-		DataDeleter( BufferManager<T> *bufferMgr, std::shared_ptr<BufferObj> ownerObj )
-			: mBufferMgr( bufferMgr ), mOwnerObj( ownerObj )
-		{}
+ public:
+	DataDeleter( BufferManager<T> *bufferMgr, std::shared_ptr<BufferObj> ownerObj )
+		: mBufferMgr( bufferMgr ), mOwnerObj( ownerObj )
+	{}
 
-		void operator()( T *data ) {
-			mBufferMgr->derefBuffer( data );
-		}
+	void operator()( T *data ) {
+		mBufferMgr->derefBuffer( data );
+	}
 
-		std::shared_ptr<BufferObj>	mOwnerObj; // to prevent deletion of our parent Obj
-		BufferManager<T> *mBufferMgr;
+	std::shared_ptr<BufferObj>	mOwnerObj; // to prevent deletion of our parent Obj
+	BufferManager<T> *mBufferMgr;
 };
 
 } } // namespace mndl::oni
-

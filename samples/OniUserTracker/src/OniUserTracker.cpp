@@ -35,19 +35,19 @@ using namespace std;
 
 class OniUserTrackerApp : public AppBasic
 {
-	public:
-		void prepareSettings( Settings *settings );
-		void setup();
-		void shutdown();
+ public:
+	void prepareSettings( Settings *settings );
+	void setup();
+	void shutdown();
 
-		void update();
-		void draw();
+	void update();
+	void draw();
 
-	private:
-		mndl::oni::OniCaptureRef mOniCaptureRef;
-		gl::TextureRef mDepthTexture;
+ private:
+	mndl::oni::OniCaptureRef mOniCaptureRef;
+	gl::TextureRef mDepthTexture;
 
-		std::shared_ptr< nite::UserTracker > mUserTrackerRef;
+	std::shared_ptr< nite::UserTracker > mUserTrackerRef;
 };
 
 void OniUserTrackerApp::prepareSettings(Settings *settings)
@@ -170,7 +170,9 @@ void OniUserTrackerApp::draw()
 				float posConf = joint.getPositionConfidence();
 
 				if ( posConf < 0.5f )
+				{
 					continue;
+				}
 
 				vec2 pos2d;
 				mUserTrackerRef->convertJointCoordinatesToDepth( pos.x, pos.y, pos.z,
@@ -183,4 +185,3 @@ void OniUserTrackerApp::draw()
 }
 
 CINDER_APP_BASIC( OniUserTrackerApp, RendererGl )
-

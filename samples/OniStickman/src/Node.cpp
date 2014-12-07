@@ -25,13 +25,13 @@ void Node::setOrientation( const quat &q )
 
 void Node::setScale( float s )
 {
-    setScale( vec3( s, s, s ) );
+	setScale( vec3( s, s, s ) );
 }
 
 void Node::setScale( const vec3 &s )
 {
-    mScale = s;
-    createMatrix();
+	mScale = s;
+	createMatrix();
 }
 
 void Node::createMatrix()
@@ -53,4 +53,3 @@ mat4 Node::getGlobalTransformMatrix() const
 {
 	return mLocalTransformMatrix;
 }
-
