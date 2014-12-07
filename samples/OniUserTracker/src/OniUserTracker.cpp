@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2012-2013, Gabor Papp
+ Copyright (c) 2012-2014, Gabor Papp
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -15,12 +15,15 @@
  along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <limits>
+#ifdef CINDER_MAC
+#include <unistd.h>
+#endif
 
 #include "cinder/Cinder.h"
 #include "cinder/Thread.h"
 #include "cinder/Utilities.h"
 #include "cinder/app/AppBasic.h"
+#include "cinder/app/RendererGl.h"
 #include "cinder/gl/gl.h"
 #include "cinder/gl/Texture.h"
 
@@ -42,7 +45,7 @@ class OniUserTrackerApp : public AppBasic
 
 	private:
 		mndl::oni::OniCaptureRef mOniCaptureRef;
-		gl::Texture mDepthTexture;
+		gl::TextureRef mDepthTexture;
 
 		std::shared_ptr< nite::UserTracker > mUserTrackerRef;
 };
@@ -54,6 +57,11 @@ void OniUserTrackerApp::prepareSettings(Settings *settings)
 
 void OniUserTrackerApp::setup()
 {
+	// limitation of NiTE 2.2 on OS X, ini and data searchpath issue
+#ifdef CINDER_MAC
+	fs::path appPath = app::getAppPath() / "Contents/MacOS/";
+	chdir( appPath.string().c_str() );
+#endif
 	if ( openni::OpenNI::initialize() != openni::STATUS_OK )
 	{
 	    console() << openni::OpenNI::getExtendedError() << endl;
@@ -74,14 +82,6 @@ void OniUserTrackerApp::setup()
 	depthMode.setPixelFormat( openni::PIXEL_FORMAT_DEPTH_1_MM );
 	mOniCaptureRef->getDepthStreamRef()->setVideoMode( depthMode );
 
-	/* FIXME: limitation of NiTE 2.2 on OS X, ini and data searchpath issue
-	 * copy NiTE.ini next to OniUserTrackerApp.app and set
-	 * [General]
-	 * DataDir=./OniUserTracker.app/Contents/MacOS/NiTE2
-	 * run the app as:
-	 * ./OniUserTracker/Contents/MacOS/OniUserTracker
-	 * see: http://community.openni.org/openni/topics/using_nite_from_os_x_app
-	 */
 	mUserTrackerRef = std::shared_ptr< nite::UserTracker >( new nite::UserTracker() );
 	if ( mUserTrackerRef->create( mOniCaptureRef->getDeviceRef().get() ) != nite::STATUS_OK )
 	{
@@ -106,13 +106,15 @@ void OniUserTrackerApp::shutdown()
 void OniUserTrackerApp::update()
 {
 	if ( mOniCaptureRef->checkNewDepthFrame() )
-		mDepthTexture = mOniCaptureRef->getDepthImage();
+	{
+		mDepthTexture = gl::Texture::create( mOniCaptureRef->getDepthImage() );
+	}
 }
 
 void OniUserTrackerApp::draw()
 {
 	gl::clear();
-	gl::setViewport( getWindowBounds() );
+	gl::viewport( getWindowSize() );
 	gl::setMatricesWindow( getWindowWidth(), getWindowHeight() );
 
 	gl::color( Color::white() );
@@ -144,8 +146,8 @@ void OniUserTrackerApp::draw()
 			{
 				continue;
 			}
-			Vec3f centerOfMass = mndl::oni::fromOni( users[ i ].getCenterOfMass() );
-			Vec2f scrPos;
+			vec3 centerOfMass = mndl::oni::fromOni( users[ i ].getCenterOfMass() );
+			vec2 scrPos;
 			mUserTrackerRef->convertJointCoordinatesToDepth( centerOfMass.x,
 					centerOfMass.y, centerOfMass.z,
 					&scrPos.x, &scrPos.y );
@@ -161,17 +163,16 @@ void OniUserTrackerApp::draw()
 				continue;
 			}
 
-			for ( int j = 0; j < sizeof( jointIds ) / sizeof( jointIds[ 0 ] );
-					++j )
+			for ( int j = 0; j < sizeof( jointIds ) / sizeof( jointIds[ 0 ] ); ++j )
 			{
 				const nite::SkeletonJoint &joint = skeleton.getJoint( jointIds[ j ] );
-				Vec3f pos = mndl::oni::fromOni( joint.getPosition() );
+				vec3 pos = mndl::oni::fromOni( joint.getPosition() );
 				float posConf = joint.getPositionConfidence();
 
 				if ( posConf < 0.5f )
 					continue;
 
-				Vec2f pos2d;
+				vec2 pos2d;
 				mUserTrackerRef->convertJointCoordinatesToDepth( pos.x, pos.y, pos.z,
 						&pos2d.x, &pos2d.y );
 				gl::drawSolidCircle( pos2d, 7 );

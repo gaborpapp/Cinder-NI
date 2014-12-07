@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2012-2013, Gabor Papp
+ Copyright (c) 2012-2014, Gabor Papp
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 #include "cinder/Cinder.h"
 #include "cinder/app/AppBasic.h"
+#include "cinder/app/RendererGl.h"
 #include "cinder/gl/gl.h"
 #include "cinder/gl/Texture.h"
 
@@ -40,7 +41,7 @@ class OniBasicApp : public AppBasic
 
 	private:
 		mndl::oni::OniCaptureRef mOniCaptureRef;
-		gl::Texture mColorTexture, mDepthTexture;
+		gl::TextureRef mColorTexture, mDepthTexture;
 };
 
 void OniBasicApp::prepareSettings(Settings *settings)
@@ -99,23 +100,23 @@ void OniBasicApp::shutdown()
 void OniBasicApp::update()
 {
 	if ( mOniCaptureRef->checkNewColorFrame() )
-		mColorTexture = mOniCaptureRef->getColorImage();
+		mColorTexture = gl::Texture::create( mOniCaptureRef->getColorImage() );
 	if ( mOniCaptureRef->checkNewDepthFrame() )
-		mDepthTexture = mOniCaptureRef->getDepthImage();
+		mDepthTexture = gl::Texture::create( mOniCaptureRef->getDepthImage() );
 }
 
 void OniBasicApp::draw()
 {
 	gl::clear();
-	gl::setViewport( getWindowBounds() );
-	gl::setMatricesWindow( getWindowWidth(), getWindowHeight() );
+	gl::viewport( getWindowSize() );
+	gl::setMatricesWindow( getWindowSize() );
 
 	if ( mDepthTexture )
 		gl::draw( mDepthTexture );
 	if ( !mOniCaptureRef->getColorStreamRef() )
-		gl::drawStringCentered( "No color stream available!", Vec2i( 960, 240 ) );
+		gl::drawStringCentered( "No color stream available!", ivec2( 960, 240 ) );
 	else if ( mColorTexture )
-		gl::draw( mColorTexture, Vec2i( 640, 0 ) );
+		gl::draw( mColorTexture, ivec2( 640, 0 ) );
 }
 
 void OniBasicApp::mouseUp( MouseEvent event )

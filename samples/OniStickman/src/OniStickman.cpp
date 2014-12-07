@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2012 Gabor Papp
+ Copyright (C) 2012-2014 Gabor Papp
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -15,14 +15,17 @@
  along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifdef CINDER_MAC
+#include <unistd.h>
+#endif
 #include <vector>
 
 #include "cinder/Camera.h"
 #include "cinder/Cinder.h"
 #include "cinder/Quaternion.h"
 #include "cinder/app/AppBasic.h"
+#include "cinder/app/RendererGl.h"
 #include "cinder/gl/gl.h"
-#include "cinder/gl/Light.h"
 #include "cinder/gl/Texture.h"
 
 #include "CinderOni.h"
@@ -36,12 +39,12 @@ using namespace std;
 class Bone : public Node
 {
 	public:
-		Quatf mBindPoseOrientation;
+		quat mBindPoseOrientation;
 
 		void customDraw()
 		{
 			gl::color( Color::white() );
-			gl::drawCube( Vec3f( 0, -20, 0 ), Vec3f( 5, 30, 5 ) );
+			gl::drawCube( vec3( 0, -20, 0 ), vec3( 5, 30, 5 ) );
 		}
 };
 
@@ -58,7 +61,7 @@ class OniStickmanApp : public AppBasic,
 
 	private:
 		mndl::oni::OniCaptureRef mOniCaptureRef;
-		gl::Texture mDepthTexture;
+		gl::TextureRef mDepthTexture;
 
 		std::shared_ptr< nite::UserTracker > mUserTrackerRef;
 		void onNewFrame( nite::UserTracker &userTracker );
@@ -79,6 +82,10 @@ void OniStickmanApp::prepareSettings(Settings *settings)
 
 void OniStickmanApp::setup()
 {
+#ifdef CINDER_MAC
+	fs::path appPath = app::getAppPath() / "Contents/MacOS/";
+	chdir( appPath.string().c_str() );
+#endif
 	if ( openni::OpenNI::initialize() != openni::STATUS_OK )
 	{
 		console() << openni::OpenNI::getExtendedError() << endl;
@@ -122,32 +129,32 @@ void OniStickmanApp::setup()
 	// stickman nodes
 	for ( int i = 0; i < sNumBones; i++ )
 	{
-		mBones[ i ].setPosition( Vec3f( -1000, -1000, -1000 ) );
+		mBones[ i ].setPosition( vec3( -1000, -1000, -1000 ) );
 		mBones[ i ].setScale( 10 );
 
 		// setup T pose
 		// left arm
 		if ( i == 2 || i == 4 )
 		{
-			mBones[ i ].mBindPoseOrientation.set( Vec3f( 0, 0, 1 ), toRadians( -90.f ) );
+			mBones[ i ].mBindPoseOrientation = glm::angleAxis( glm::radians( -90.0f ), vec3( 0.0f, 0.0f, 1.0f ) );
 		}
 		else // right arm
 		if ( i == 3 || i == 5 )
 		{
-			mBones[ i ].mBindPoseOrientation.set( Vec3f( 0, 0, 1 ), toRadians( 90.f ) );
+			mBones[ i ].mBindPoseOrientation = glm::angleAxis( glm::radians( 90.0f ), vec3( 0.0f, 0.0f, 1.0f ) );
 		}
 		else // neck
 		if ( i == 1 )
 		{
-			mBones[ i ].mBindPoseOrientation.set( Vec3f( 0, 0, 1 ), toRadians( 180.f ) );
+			mBones[ i ].mBindPoseOrientation = glm::angleAxis( glm::radians( 180.0f ), vec3( 0.0f, 0.0f, 1.0f ) );
 		}
 		else
 		{
-			mBones[ i ].mBindPoseOrientation.set( 1, 0, 0, 0 );
+			mBones[ i ].mBindPoseOrientation = glm::quat( 1.0f, 0.0f, 0.0f, 0.0f );
 		}
 	}
 
-	mCam.lookAt( Vec3f( 0, 0, 0 ), Vec3f( 0, 0, 1500 ) );
+	mCam.lookAt( vec3( 0, 0, 0 ), vec3( 0, 0, 1500 ) );
 	mCam.setPerspective( 60, getWindowAspectRatio(), 0.1f, 10000.0f );
 
 	gl::enableDepthRead();
@@ -169,7 +176,9 @@ void OniStickmanApp::onNewFrame( nite::UserTracker &userTracker )
 {
 	nite::UserTrackerFrameRef frame;
 	if ( mUserTrackerRef->readFrame( &frame ) != nite::STATUS_OK )
+	{
 		return;
+	}
 
 	const nite::Array< nite::UserData > &users = frame.getUsers();
 	if ( users.isEmpty() )
@@ -201,16 +210,18 @@ void OniStickmanApp::onNewFrame( nite::UserTracker &userTracker )
 void OniStickmanApp::update()
 {
 	if ( mOniCaptureRef->checkNewDepthFrame() )
-		mDepthTexture = mOniCaptureRef->getDepthImage();
+	{
+		mDepthTexture = gl::Texture::create( mOniCaptureRef->getDepthImage() );
+	}
 }
 
 void OniStickmanApp::transformNode( const nite::Skeleton &skeleton, int nodeNum, nite::JointType jointType )
 {
 	lock_guard< recursive_mutex > lock( mMutex );
 	const nite::SkeletonJoint &joint = skeleton.getJoint( jointType );
-	Quatf ori = mndl::oni::fromOni( joint.getOrientation() );
+	quat ori = mndl::oni::fromOni( joint.getOrientation() );
 	float oriConf = joint.getOrientationConfidence();
-	Vec3f pos = mndl::oni::fromOni( joint.getPosition() );
+	vec3 pos = mndl::oni::fromOni( joint.getPosition() );
 	float posConf = joint.getPositionConfidence();
 
 	if ( oriConf > 0 && posConf > 0 )
@@ -218,38 +229,32 @@ void OniStickmanApp::transformNode( const nite::Skeleton &skeleton, int nodeNum,
 		mBones[ nodeNum ].setPosition( pos );
 
 		// apply skeleton pose relatively to the bone bind pose
-		mBones[ nodeNum ].setOrientation( mBones[ nodeNum ].mBindPoseOrientation * ori );
+		mBones[ nodeNum ].setOrientation( ori * mBones[ nodeNum ].mBindPoseOrientation );
 	}
 }
 
 void OniStickmanApp::draw()
 {
 	gl::clear();
-	gl::setViewport( getWindowBounds() );
-	gl::setMatricesWindow( getWindowWidth(), getWindowHeight() );
+	gl::viewport( getWindowSize() );
+	gl::setMatricesWindow( getWindowSize() );
 
 	gl::color( Color::white() );
 	if ( mDepthTexture )
+	{
 		gl::draw( mDepthTexture, Rectf( 0, 0, 160, 120 ) );
+	}
 
-	gl::enable( GL_LIGHTING );
 	gl::setMatrices( mCam );
 
-	gl::Light light( gl::Light::DIRECTIONAL, 0 );
-	light.setDirection( Vec3f( .5, 0, 1 ) );
-	light.enable();
-	light.update( mCam );
-
 	// mirror
-	gl::scale( Vec3f( -1, 1, 1 ) );
+	gl::scale( vec3( -1, 1, 1 ) );
 
 	for ( int i = 0; i < sNumBones; i++ )
 	{
 		lock_guard< recursive_mutex > lock( mMutex );
 		mBones[ i ].draw();
 	}
-	light.disable();
-	gl::disable( GL_LIGHTING );
 }
 
 CINDER_APP_BASIC( OniStickmanApp, RendererGl )

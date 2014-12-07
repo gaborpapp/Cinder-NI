@@ -1,7 +1,7 @@
 env = Environment()
 
-env['APP_TARGET'] = 'OniBasicApp'
-env['APP_SOURCES'] = ['OniBasicApp.cpp']
+env['APP_TARGET'] = 'OniStickman'
+env['APP_SOURCES'] = ['OniStickman.cpp', 'Node.cpp']
 env['DEBUG'] = 0
 
 # CinderOni

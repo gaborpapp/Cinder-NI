@@ -6,18 +6,18 @@ using namespace ci;
 
 Node::Node()
 {
-	setPosition( Vec3f( 0, 0, 0 ) );
-	setOrientation( Quatf( 1, 0, 0, 0 ) );
+	setPosition( vec3( 0, 0, 0 ) );
+	setOrientation( quat( 1, 0, 0, 0 ) );
 	setScale( 1 );
 }
 
-void Node::setPosition( const Vec3f& p )
+void Node::setPosition( const vec3 &p )
 {
 	mPosition = p;
-	mLocalTransformMatrix.setTranslate( p );
+	mLocalTransformMatrix[ 3 ] = vec4( p, 1.0f );
 }
 
-void Node::setOrientation( const Quatf& q )
+void Node::setOrientation( const quat &q )
 {
 	mOrientation = q;
 	createMatrix();
@@ -25,10 +25,10 @@ void Node::setOrientation( const Quatf& q )
 
 void Node::setScale( float s )
 {
-    setScale( Vec3f( s, s, s ) );
+    setScale( vec3( s, s, s ) );
 }
 
-void Node::setScale( const Vec3f& s )
+void Node::setScale( const vec3 &s )
 {
     mScale = s;
     createMatrix();
@@ -36,20 +36,20 @@ void Node::setScale( const Vec3f& s )
 
 void Node::createMatrix()
 {
-    mLocalTransformMatrix = Matrix44f::createScale( mScale );
-    mLocalTransformMatrix *= mOrientation.toMatrix44();
-    mLocalTransformMatrix.setTranslate( mPosition );
+	mLocalTransformMatrix = glm::scale( mScale );
+	mLocalTransformMatrix *= glm::mat4_cast( mOrientation );
+	mLocalTransformMatrix[ 3 ] = vec4( mPosition, 1.0f );
 }
 
 void Node::draw()
 {
-    gl::pushMatrices();
-    glMultMatrixf( &getGlobalTransformMatrix().m[ 0 ] );
+	gl::pushMatrices();
+	gl::multModelMatrix( getGlobalTransformMatrix() );
 	customDraw();
 	gl::popMatrices();
 }
 
-Matrix44f Node::getGlobalTransformMatrix() const
+mat4 Node::getGlobalTransformMatrix() const
 {
 	return mLocalTransformMatrix;
 }

@@ -1,6 +1,9 @@
 # scons
-*/*/scons/*
-!scons/SConscript
-!scons/SConstruct
-!.gitignore
+.DS_Store
+*.app
+
+.sconsign.dblite
+
+*.sw[a-z]
+
 *.o

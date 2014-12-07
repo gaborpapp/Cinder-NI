@@ -45,30 +45,30 @@
 
 namespace mndl { namespace oni {
 
-inline ci::Vec3f fromOni( const nite::Point3f &v )
+inline ci::vec3 fromOni( const nite::Point3f &v )
 {
-	return ci::Vec3f( v.x, v.y, v.z );
+	return ci::vec3( v.x, v.y, v.z );
 }
 
-inline nite::Point3f toOni( const ci::Vec3f &v )
+inline nite::Point3f toOni( const ci::vec3 &v )
 {
 	return nite::Point3f( v.x, v.y, v.z );
 }
 
-inline ci::Quatf fromOni( const nite::Quaternion &q )
+inline ci::quat fromOni( const nite::Quaternion &q )
 {
-	return ci::Quatf( q.w, q.x, q.y, q.z );
+	return ci::quat( q.w, q.x, q.y, q.z );
 }
 
-inline nite::Quaternion toOni( const ci::Quatf &q )
+inline nite::Quaternion toOni( const ci::quat &q )
 {
-	return nite::Quaternion( q.w, q.v.x, q.v.y, q.v.z );
+	return nite::Quaternion( q.w, q.x, q.y, q.z );
 }
 
 inline ci::Planef fromOni( const nite::Plane &p )
 {
-	return ci::Planef( ci::Vec3f( p.point.x, p.point.y, p.point.z ),
-					   ci::Vec3f( p.normal.x, p.normal.y, p.normal.z ) );
+	return ci::Planef( ci::vec3( p.point.x, p.point.y, p.point.z ),
+					   ci::vec3( p.normal.x, p.normal.y, p.normal.z ) );
 }
 
 inline nite::Plane toOni( const ci::Planef &p )

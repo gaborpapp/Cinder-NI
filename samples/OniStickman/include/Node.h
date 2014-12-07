@@ -10,23 +10,23 @@ class Node
 		Node();
 		virtual ~Node() {}
 
-		void setPosition( const ci::Vec3f& p );
-		void setOrientation( const ci::Quatf& q );
+		void setPosition( const ci::vec3 &p );
+		void setOrientation( const ci::quat &q );
 		void setScale( float s );
-		void setScale( const ci::Vec3f& s );
+		void setScale( const ci::vec3 &s );
 
 		void draw();
 		virtual void customDraw() {}
 
-		ci::Matrix44f getGlobalTransformMatrix() const;
+		ci::mat4 getGlobalTransformMatrix() const;
 
 	private:
 		void createMatrix();
 
-		ci::Vec3f mPosition;
-		ci::Quatf mOrientation;
-		ci::Vec3f mScale;
+		ci::vec3 mPosition;
+		ci::quat mOrientation;
+		ci::vec3 mScale;
 
-		ci::Matrix44f mLocalTransformMatrix;
+		ci::mat4 mLocalTransformMatrix;
 };
 
