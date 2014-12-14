@@ -28,7 +28,9 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <algorithm>
 #include <cstdio>
+#include <limits>
 
 #include "cinder/app/App.h"
 
@@ -99,13 +101,14 @@ class ImageSourceOniColor : public ci::ImageSource
 };
 
 OniCapture::DepthListener::DepthListener( std::shared_ptr< openni::Device > deviceRef ) :
-	mNewDepthFrame( false )
+	mNewDepthFrame( false ), mDepthHistogramEnabled( false )
 {
 	mDepthStreamRef = std::shared_ptr< openni::VideoStream >( new openni::VideoStream() );
 	if ( mDepthStreamRef->create( *deviceRef.get(), openni::SENSOR_DEPTH ) )
 	{
 		throw ExcFailedCreateDepthStream();
 	}
+	mDepthHistogram = new float[ std::numeric_limits< uint16_t >::max() + 1 ];
 }
 
 OniCapture::DepthListener::~DepthListener()
@@ -114,6 +117,7 @@ OniCapture::DepthListener::~DepthListener()
 	{
 		mDepthStreamRef->destroy();
 	}
+	delete [] mDepthHistogram;
 }
 
 void OniCapture::DepthListener::start()
@@ -164,14 +168,56 @@ void OniCapture::DepthListener::onNewFrame( openni::VideoStream &videoStream )
 	const uint16_t *depth = reinterpret_cast< const uint16_t * >( frame.getData() );
 	mDepthBuffers.derefActiveBuffer();
 	uint16_t *destPixels = mDepthBuffers.getNewBuffer();
-	const uint32_t depthScale = 0xffff0000 / ( maxDepthValue - minDepthValue );
-	for ( size_t p = 0; p < mDepthWidth * mDepthHeight; ++p )
+
+	if ( ! mDepthHistogramEnabled )
 	{
-		uint32_t v = depth[ p ] - minDepthValue;
-		destPixels[ p ] = ( depthScale * v ) >> 16;
+		const uint32_t depthScale = 0xffff0000 / ( maxDepthValue - minDepthValue );
+		for ( size_t p = 0; p < mDepthWidth * mDepthHeight; ++p )
+		{
+			uint32_t v = depth[ p ] - minDepthValue;
+			destPixels[ p ] = ( depthScale * v ) >> 16;
+		}
 	}
+	else
+	{
+		calcHistogram( depth );
+		for ( size_t p = 0; p < mDepthWidth * mDepthHeight; ++p )
+		{
+			destPixels[ p ] = mDepthHistogram[ depth[ p ] ] * 0xffff;
+		}
+	}
+
 	mDepthBuffers.setActiveBuffer( destPixels );
 	mNewDepthFrame = true;
+}
+
+void OniCapture::DepthListener::calcHistogram( const uint16_t *depth )
+{
+	size_t histogramSize = std::numeric_limits< uint16_t >::max() + 1;
+	std::fill( mDepthHistogram, mDepthHistogram + histogramSize,  0.0f );
+	size_t pointNum = 0;
+	for ( size_t p = 0; p < mDepthWidth * mDepthHeight; ++p )
+	{
+		uint16_t v = depth[ p ];
+		if ( v != 0 )
+		{
+			mDepthHistogram[ v ]++;
+			pointNum++;
+		}
+	}
+
+	for ( size_t i = 0; i < histogramSize; i++ )
+	{
+		mDepthHistogram[ i ] += mDepthHistogram[ i - 1 ];
+	}
+
+	for ( size_t i = 0; i < histogramSize; i++ )
+	{
+		if ( mDepthHistogram[ i ] != 0.0f )
+		{
+			mDepthHistogram[ i ] = mDepthHistogram[ i ] / static_cast< float >( pointNum );
+		}
+	}
 }
 
 OniCapture::ColorListener::ColorListener( std::shared_ptr< openni::Device > deviceRef ) :
@@ -376,6 +422,25 @@ ci::ImageSourceRef OniCapture::getColorImage()
 	uint8_t *activeColor = mColorListener->mColorBuffers.refActiveBuffer();
 	return ci::ImageSourceRef( new ImageSourceOniColor( activeColor,
 				mColorListener->mColorWidth, mColorListener->mColorHeight, mColorListener ) );
+}
+
+void OniCapture::enableDepthHistogram( bool enable )
+{
+	if ( mDepthListener )
+	{
+		std::lock_guard< std::recursive_mutex > lock( mDepthListener->mMutex );
+		mDepthListener->mDepthHistogramEnabled = enable;
+	}
+}
+
+bool OniCapture::isDepthHistogramEnabled() const
+{
+	if ( mDepthListener )
+	{
+		std::lock_guard< std::recursive_mutex > lock( mDepthListener->mMutex );
+		return mDepthListener->mDepthHistogramEnabled;
+	}
+	return false;
 }
 
 ExcOpenNI::ExcOpenNI() throw()

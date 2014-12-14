@@ -131,6 +131,9 @@ class OniCapture
 	ci::ImageSourceRef getDepthImage();
 	ci::ImageSourceRef getColorImage();
 
+	void enableDepthHistogram( bool enable = true );
+	bool isDepthHistogramEnabled() const;
+
 	class ExcFailedOpenDevice : public ExcOpenNI {};
 	class ExcFailedCreateDepthStream : public ExcOpenNI {};
 	class ExcFailedStartDepthStream : public ExcOpenNI {};
@@ -156,6 +159,10 @@ class OniCapture
 		BufferManager< uint16_t > mDepthBuffers;
 		int mDepthWidth, mDepthHeight;
 		bool mNewDepthFrame;
+		bool mDepthHistogramEnabled;
+
+		void calcHistogram( const uint16_t *depth );
+		float *mDepthHistogram;
 
 		friend class ImageSourceOniDepth;
 	};
