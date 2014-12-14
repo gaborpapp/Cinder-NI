@@ -134,6 +134,10 @@ class OniCapture
 	void enableDepthHistogram( bool enable = true );
 	bool isDepthHistogramEnabled() const;
 
+	//! Pixels closer to the camera are brighter if \a invert is true.
+	void invertDepth( bool invert = true );
+	bool isDepthInverted() const;
+
 	class ExcFailedOpenDevice : public ExcOpenNI {};
 	class ExcFailedCreateDepthStream : public ExcOpenNI {};
 	class ExcFailedStartDepthStream : public ExcOpenNI {};
@@ -160,6 +164,7 @@ class OniCapture
 		int mDepthWidth, mDepthHeight;
 		bool mNewDepthFrame;
 		bool mDepthHistogramEnabled;
+		bool mDepthInverted;
 
 		void calcHistogram( const uint16_t *depth );
 		float *mDepthHistogram;

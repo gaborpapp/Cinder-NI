@@ -43,6 +43,7 @@ class OniDepthApp : public AppBasic
 	gl::TextureRef mDepthTexture;
 
 	bool mEnableDepthHistogram = false;
+	bool mInvertDepth = false;
 
 	params::InterfaceGlRef mParams;
 };
@@ -84,6 +85,8 @@ void OniDepthApp::setup()
 	mParams = params::InterfaceGl::create( "Parameters", ivec2( 200, 300 ) );
 	mParams->addParam( "Depth histogram", &mEnableDepthHistogram ).updateFn(
 			[ & ]() { mOniCaptureRef->enableDepthHistogram( mEnableDepthHistogram ); } );
+	mParams->addParam( "Invert depth", &mInvertDepth ).updateFn(
+			[ & ]() { mOniCaptureRef->invertDepth( mInvertDepth ); } );
 }
 
 void OniDepthApp::shutdown()

@@ -101,7 +101,7 @@ class ImageSourceOniColor : public ci::ImageSource
 };
 
 OniCapture::DepthListener::DepthListener( std::shared_ptr< openni::Device > deviceRef ) :
-	mNewDepthFrame( false ), mDepthHistogramEnabled( false )
+	mNewDepthFrame( false ), mDepthHistogramEnabled( false ), mDepthInverted( false )
 {
 	mDepthStreamRef = std::shared_ptr< openni::VideoStream >( new openni::VideoStream() );
 	if ( mDepthStreamRef->create( *deviceRef.get(), openni::SENSOR_DEPTH ) )
@@ -176,6 +176,10 @@ void OniCapture::DepthListener::onNewFrame( openni::VideoStream &videoStream )
 		{
 			uint32_t v = depth[ p ] - minDepthValue;
 			destPixels[ p ] = ( depthScale * v ) >> 16;
+			if ( mDepthInverted && ( v != 0 ) )
+			{
+				destPixels[ p ] = 0xffff - destPixels[ p ];
+			}
 		}
 	}
 	else
@@ -206,14 +210,21 @@ void OniCapture::DepthListener::calcHistogram( const uint16_t *depth )
 		}
 	}
 
-	for ( size_t i = 0; i < histogramSize; i++ )
+	for ( size_t i = 1; i < histogramSize; i++ )
 	{
 		mDepthHistogram[ i ] += mDepthHistogram[ i - 1 ];
 	}
 
-	for ( size_t i = 0; i < histogramSize; i++ )
+	if ( mDepthInverted )
 	{
-		if ( mDepthHistogram[ i ] != 0.0f )
+		for ( size_t i = 1; i < histogramSize; i++ )
+		{
+			mDepthHistogram[ i ] = ( pointNum - mDepthHistogram[ i ] ) / static_cast< float >( pointNum );
+		}
+	}
+	else
+	{
+		for ( size_t i = 1; i < histogramSize; i++ )
 		{
 			mDepthHistogram[ i ] = mDepthHistogram[ i ] / static_cast< float >( pointNum );
 		}
@@ -439,6 +450,25 @@ bool OniCapture::isDepthHistogramEnabled() const
 	{
 		std::lock_guard< std::recursive_mutex > lock( mDepthListener->mMutex );
 		return mDepthListener->mDepthHistogramEnabled;
+	}
+	return false;
+}
+
+void OniCapture::invertDepth( bool invert )
+{
+	if ( mDepthListener )
+	{
+		std::lock_guard< std::recursive_mutex > lock( mDepthListener->mMutex );
+		mDepthListener->mDepthInverted = invert;
+	}
+}
+
+bool OniCapture::isDepthInverted() const
+{
+	if ( mDepthListener )
+	{
+		std::lock_guard< std::recursive_mutex > lock( mDepthListener->mMutex );
+		return mDepthListener->mDepthInverted;
 	}
 	return false;
 }
