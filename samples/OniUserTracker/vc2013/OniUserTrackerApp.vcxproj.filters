@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{6606ce7b-1a56-4293-881c-9430724eaf92}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{0f51bed3-6672-4df8-87c1-9427c9480394}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="blocks">
+      <UniqueIdentifier>{1e61ac57-3560-406d-b760-6884199fecbe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="blocks\Cinder-NI2">
+      <UniqueIdentifier>{18f744dd-aa44-4941-bb25-76cd87a71a59}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="blocks\Cinder-NI2\include">
+      <UniqueIdentifier>{67a93805-63da-4bf0-9989-38de52681549}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="blocks\Cinder-NI2\src">
+      <UniqueIdentifier>{9187b613-2c2b-4519-b8f9-0ef5e06ae8b5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\CinderOni.cpp">
+      <Filter>blocks\Cinder-NI2\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\OniUserTracker.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\src\BufferManager.h">
+      <Filter>blocks\Cinder-NI2\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\CinderOni.h">
+      <Filter>blocks\Cinder-NI2\include</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros">
+    <CINDER_DIR>..\..\..\..\..</CINDER_DIR>
+    <OPEN_NI2_DIR>..\..\..</OPEN_NI2_DIR>
+    <NITE2_DIR>..\..\..</NITE2_DIR>
+  </PropertyGroup>
+  <PropertyGroup />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <PreBuildEvent>
+      <Command>xcopy /y /c "$(OPEN_NI2_DIR)\lib\msw\OpenNI2.dll" "$(OutDir)"
+xcopy /y /c "$(OPEN_NI2_DIR)\lib\msw\OpenNI2.pdb" "$(OutDir)"
+xcopy /y /c "$(OPEN_NI2_DIR)\lib\msw\OpenNI.ini" "$(OutDir)"
+md $(OutDir)\OpenNI2\Drivers
+xcopy /y /c "$(OPEN_NI2_DIR)\lib\msw\OpenNI2\Drivers\*.*" "$(OutDir)\OpenNI2\Drivers"
+xcopy /y /c "$(NITE2_DIR)\lib\msw\NiTE2.dll" "$(OutDir)"
+xcopy /y /c "$(NITE2_DIR)\lib\msw\NiTE2.pdb" "$(OutDir)"
+xcopy /y /c "$(NITE2_DIR)\lib\msw\NiTE.ini" "$(OutDir)"
+md $(OutDir)\NiTE2\Data
+xcopy /y /c "$(OPEN_NI2_DIR)\lib\msw\NiTE2\*.*" "$(OutDir)\NiTE2"
+xcopy /y /c "$(OPEN_NI2_DIR)\lib\msw\NiTE2\Data\*.*" "$(OutDir)\NiTE2\Data"
+
+</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <BuildMacro Include="CINDER_DIR">
+      <Value>$(CINDER_DIR)</Value>
+    </BuildMacro>
+    <BuildMacro Include="OPEN_NI2_DIR">
+      <Value>$(OPEN_NI2_DIR)</Value>
+    </BuildMacro>
+    <BuildMacro Include="NITE2_DIR">
+      <Value>$(NITE2_DIR)</Value>
+    </BuildMacro>
+  </ItemGroup>
+</Project>
