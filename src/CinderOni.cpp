@@ -101,7 +101,7 @@ class ImageSourceOniColor : public ci::ImageSource
 };
 
 OniCapture::DepthListener::DepthListener( std::shared_ptr< openni::Device > deviceRef ) :
-	mNewDepthFrame( false ), mDepthHistogramEnabled( false ), mDepthInverted( false ), mNearClip( 0.f ), mFarClip( 1.f )
+	mNewDepthFrame( false ), mDepthHistogramEnabled( false ), mDepthInverted( false )
 {
 	mDepthStreamRef = std::shared_ptr< openni::VideoStream >( new openni::VideoStream() );
 	if ( mDepthStreamRef->create( *deviceRef.get(), openni::SENSOR_DEPTH ) )
@@ -172,16 +172,10 @@ void OniCapture::DepthListener::onNewFrame( openni::VideoStream &videoStream )
 
 	if ( ! mDepthHistogramEnabled )
 	{
-		const int nearClip = maxDepthValue * mNearClip;
-		const int farClip = maxDepthValue * mFarClip;
 		const uint32_t depthScale = 0xffff0000 / ( maxDepthValue - minDepthValue );
 		for ( size_t p = 0; p < mDepthWidth * mDepthHeight; ++p )
 		{
-			uint32_t v = depth[ p ];
-			if ( v <= nearClip || v >= farClip )
-				v = 0;
-			else
-				v -= minDepthValue;
+			uint32_t v = depth[ p ] - minDepthValue;
 			destPixels[ p ] = ( depthScale * v ) >> 16;
 			if ( mDepthInverted && ( v != 0 ) )
 			{
@@ -479,24 +473,6 @@ bool OniCapture::isDepthInverted() const
 		return mDepthListener->mDepthInverted;
 	}
 	return false;
-}
-
-void OniCapture::setNearClip( float nearClip )
-{
-	if ( mDepthListener )
-	{
-		std::lock_guard< std::recursive_mutex > lock( mDepthListener->mMutex );
-		mDepthListener->mNearClip = ci::math<float>::clamp( nearClip, 0.f, 1.f );
-	}
-}
-
-void OniCapture::setFarClip( float farClip )
-{
-	if ( mDepthListener )
-	{
-		std::lock_guard< std::recursive_mutex > lock( mDepthListener->mMutex );
-		mDepthListener->mFarClip = ci::math<float>::clamp( farClip, 0.f, 1.f );
-	}
 }
 
 ExcOpenNI::ExcOpenNI() throw()
