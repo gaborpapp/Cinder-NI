@@ -150,6 +150,7 @@ void OniCapture::DepthListener::stop()
 	{
 		mDepthStreamRef->stop();
 		mDepthStreamRef->removeNewFrameListener( this );
+		mNewDepthFrame = false;
 	}
 }
 
@@ -284,6 +285,7 @@ void OniCapture::ColorListener::stop()
 	{
 		mColorStreamRef->stop();
 		mColorStreamRef->removeNewFrameListener( this );
+		mNewColorFrame = false;
 	}
 }
 
